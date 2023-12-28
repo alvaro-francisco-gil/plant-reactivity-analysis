@@ -5,7 +5,7 @@ from scipy import stats
 class IndependentFeatureExtractor:
     def __init__(self, sample_rate: int= 10000, n_mfcc: int= 13, n_fft: int= 2000, hop_length: int= 500):
         """
-        Initialize the AudioFeatureExtractor with default MFCC parameters.
+        Initialize the AudioFeatureExtractor with default MFCC parameters.  
 
         :param sample_rate: Sample rate of the audio.
         :param n_mfcc: Number of MFCCs to return.
@@ -16,6 +16,7 @@ class IndependentFeatureExtractor:
         self.n_mfcc = n_mfcc
         self.n_fft = n_fft
         self.hop_length = hop_length
+        self.standardization = 'None'
 
     @staticmethod
     def add_feature(name, func, waveform_data, feature_values, feature_labels):
@@ -91,7 +92,7 @@ class IndependentFeatureExtractor:
 
         return standardized_waveform
     
-    def standardize_waveform(waveform, method):
+    def standardize_waveform(self, waveform, method):
         """
         Standardizes the waveform using the specified method.
 
@@ -103,11 +104,14 @@ class IndependentFeatureExtractor:
         - standardized_waveform (np.ndarray): The standardized waveform.
         """
         if method == 'peak':
-            return IndependentFeatureExtractor.standardize_wave_peak(waveform)
+            self.standarization = 'peak'
+            return self.standardize_wave_peak(waveform)
         elif method == 'zscore':
-            return IndependentFeatureExtractor.standardize_wave_zscore(waveform)
+            self.standarization = 'zscore'
+            return self.standardize_wave_zscore(waveform)
         elif method == 'min_max':
-            return IndependentFeatureExtractor.standardize_wave_min_max(waveform)
+            self.standarization = 'min_max'
+            return self.standardize_wave_min_max(waveform)
         else:
             raise ValueError("Invalid standardization method. Choose 'peak', 'zscore', or 'min_max'.")
         
@@ -194,7 +198,7 @@ class IndependentFeatureExtractor:
 
         return Alpha
 
-    def get_statistical_features(waveform_data):
+    def extract_statistical_features(self, waveform_data):
         """
         Calculates various statistical features of the waveform data.
         """
@@ -203,16 +207,17 @@ class IndependentFeatureExtractor:
 
         # Hjorth parameters
         try:
-            hj = IndependentFeatureExtractor.hjorth(waveform_data)
+            hj = self.hjorth(waveform_data)
             feature_values.extend([hj[0], hj[1]])
             feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
         except Exception:
+            print(Exception)
             feature_values.extend([np.nan, np.nan])
             feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
 
         # Hurst parameters
         try:
-            hu = IndependentFeatureExtractor.compute_Hc(waveform_data)
+            hu = self.compute_Hc(waveform_data)
             feature_values.extend([hu[0], hu[1]])
             feature_labels.extend(['hurst', 'hurst_r2'])
         except Exception:
@@ -223,16 +228,16 @@ class IndependentFeatureExtractor:
         statistical_features = [
             ('mean', np.mean), ('variance', np.var), ('standard_deviation', np.std), 
             ('interquartile_range', stats.iqr), ('skewness', stats.skew), 
-            ('kurtosis', stats.kurtosis), ('dfa', IndependentFeatureExtractor.dfa)
+            ('kurtosis', stats.kurtosis), ('dfa', self.dfa)
         ]
 
         for name, func in statistical_features:
-            IndependentFeatureExtractor.add_feature(name, func, waveform_data, feature_values, feature_labels)
+            self.add_feature(name, func, waveform_data, feature_values, feature_labels)
 
         return feature_values, feature_labels
     
     @staticmethod
-    def get_flatness_ratio(array, threshold):
+    def extract_flatness_ratio(array, threshold):
         """
         Calculates the flatness ratio of an array.
 
@@ -272,7 +277,7 @@ class IndependentFeatureExtractor:
         # Calculate and return the flatness ratio
         return total_length / len(array)
 
-    def get_temporal_features_from_wave(waveform, sample_rate):
+    def extract_temporal_features(self, waveform, flatness_ratio: bool = True):
         """
         Extracts various temporal features from an audio waveform.
         """
@@ -283,25 +288,26 @@ class IndependentFeatureExtractor:
         feature_labels = []
 
         # Call the static method 'add_feature' for each feature
-        IndependentFeatureExtractor.add_feature('zero_crossing_rate', 
+        self.add_feature('zero_crossing_rate', 
                                                 lambda x: np.sum(np.diff(np.sign(x)) != 0) / (2 * len(x)), 
                                                 waveform, feature_values, feature_labels)
-        IndependentFeatureExtractor.add_feature('root_mean_square_energy', 
+        self.add_feature('root_mean_square_energy', 
                                                 lambda x: np.sqrt(np.mean(x ** 2)), 
                                                 waveform, feature_values, feature_labels)
-        IndependentFeatureExtractor.add_feature('slope_sign_changes_ratio', 
+        self.add_feature('slope_sign_changes_ratio', 
                                                 lambda x: (np.sum(np.diff(np.sign(np.diff(x))) != 0))/len(x), 
                                                 waveform, feature_values, feature_labels)
-        IndependentFeatureExtractor.add_feature('duration_seconds', 
-                                                lambda x: len(x) / sample_rate, 
+        self.add_feature('duration_seconds', 
+                                                lambda x: len(x) / self.sample_rate, 
                                                 waveform, feature_values, feature_labels)
-
+    
         # Flatness Ratios
-        flatness_ratios = [10000, 5000, 1000, 500, 100]
-        for ratio in flatness_ratios:
-            IndependentFeatureExtractor.add_feature(f'flatness_ratio_{ratio}', 
-                                                    lambda x: IndependentFeatureExtractor.get_flatness_ratio(x, ratio), 
-                                                    waveform, feature_values, feature_labels)
+        if flatness_ratio:
+            flatness_ratios = [10000, 5000, 1000, 500, 100]
+            for ratio in flatness_ratios:
+                self.add_feature(f'flatness_ratio_{ratio}', 
+                                                        lambda x: self.extract_flatness_ratio(x, ratio), 
+                                                        waveform, feature_values, feature_labels)
 
         return feature_values, feature_labels
 
@@ -336,3 +342,30 @@ class IndependentFeatureExtractor:
         return mfccs_features, feature_labels
 
 
+    def extract_all_features(self, waveform):
+            """
+            Extracts all features using the specified feature extraction methods and
+            combines them into a single feature list along with their labels.
+
+            :param waveform: A numpy array representing the audio waveform.
+            :return: Two lists - one containing all the feature values and another containing all the corresponding feature labels.
+            """
+            feature_values = []
+            feature_labels = []
+
+            # Extract MFCC features
+            mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
+            feature_values.extend(mfcc_values)
+            feature_labels.extend(mfcc_labels)
+
+            # Extract temporal features
+            temporal_values, temporal_labels = self.extract_temporal_features(waveform)
+            feature_values.extend(temporal_values)
+            feature_labels.extend(temporal_labels)
+
+            # Extract statistical features
+            statistical_values, statistical_labels = self.extract_statistical_features(waveform)
+            feature_values.extend(statistical_values)
+            feature_labels.extend(statistical_labels)
+
+            return feature_values, feature_labels

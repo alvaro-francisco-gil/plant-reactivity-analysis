@@ -1,12 +1,12 @@
 from torch.utils.data import Dataset
 
-class AudioDataset(Dataset):
-    def __init__(self, features, labels):
+class WavDataset(Dataset):
+    def __init__(self, features: list, labels: list):
         """
         Initialization method for the AudioDataset.
 
-        :param features: The features of the audio data (e.g., MFCCs, spectrograms).
-        :param labels: The labels or targets corresponding to each audio sample.
+        :param features: The features of the wav data (e.g., MFCCs, spectrograms).
+        :param labels: The labels or targets corresponding to each wav sample.
         """
         self.features = features
         self.labels = labels
@@ -17,7 +17,7 @@ class AudioDataset(Dataset):
         """
         return len(self.features)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         """
         Fetch the data sample and its corresponding label at the specified index.
 
