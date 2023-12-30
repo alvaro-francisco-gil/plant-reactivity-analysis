@@ -1,6 +1,7 @@
 import pandas as pd
 from torch.utils.data import Dataset
 from scipy import stats
+import numpy as np
 
 class FeaturesDataset(Dataset):
 
@@ -18,6 +19,7 @@ class FeaturesDataset(Dataset):
         assert len(features) == len(targets), "Features and targets must have the same length"
         self.features = pd.DataFrame(features, columns=feature_labels)
         self.targets = targets
+        self.preprocessed = False
 
     def __len__(self):
         """
@@ -151,3 +153,82 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers have been treated based on the {iqr_multiplier} * IQR criterion.")
 
+
+    def reduce_features(self, class_values, corr_threshold=0.8):
+        """
+        Reduces features based on t-test/ANOVA and correlation matrix.
+
+        :param class_values: A list of class values corresponding to the targets.
+        :param corr_threshold: Threshold for feature correlation. Features with correlation above this threshold
+                               will be considered for removal based on their p-values.
+        """
+        # Perform t-test or ANOVA and store p-values
+        p_values = []
+        num_classes = len(set(class_values))
+        for feature in self.features.columns:
+            if num_classes == 2:
+                # Perform t-test for binary classification
+                p_value = stats.ttest_ind(self.features[feature][class_values == 0],
+                                          self.features[feature][class_values == 1]).pvalue
+            else:
+                # Perform ANOVA for multi-class classification
+                groups = [self.features[feature][class_values == val] for val in set(class_values)]
+                p_value = stats.f_oneway(*groups).pvalue
+            p_values.append(p_value)
+
+        # Construct correlation matrix
+        corr_matrix = self.features.corr().abs()
+
+        # Iteratively remove features based on correlation and p-values
+        while True:
+            # Find pairs of features where correlation exceeds the threshold
+            correlated_features = np.where((corr_matrix > corr_threshold) & (corr_matrix < 1))
+
+            if len(correlated_features[0]) == 0:
+                break  # Exit if no highly correlated pairs are left
+
+            removal_candidates = []
+            for i in range(len(correlated_features[0])):
+                idx1, idx2 = correlated_features[0][i], correlated_features[1][i]
+                feature1, feature2 = self.features.columns[idx1], self.features.columns[idx2]
+
+                # Keep the feature with the lower p-value (higher statistical significance)
+                if p_values[idx1] < p_values[idx2]:
+                    removal_candidates.append(feature2)
+                else:
+                    removal_candidates.append(feature1)
+
+            # Remove duplicated features in the list
+            removal_candidates = list(set(removal_candidates))
+
+            # Update the DataFrame and correlation matrix
+            self.features.drop(columns=removal_candidates, inplace=True)
+            corr_matrix = self.features.corr().abs()
+
+        print(f"Reduced features from {len(self.features.columns)} to {self.features.shape[1]}.")
+
+
+    def preprocess_features(self, class_values, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
+        """
+        Applies a sequence of preprocessing steps to the feature DataFrame.
+
+        :param class_values: A list of class values for the ANOVA/t-test in reduce_features.
+        :param normalize_method: The method of normalization ('zscore' or 'minmax').
+        :param iqr_multiplier: The multiplier for IQR in treat_outliers.
+        :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
+        """
+        # Remove columns with NaN values
+        self.remove_nan_columns()
+
+        # Normalize features
+        self.normalize_features(method=normalize_method)
+
+        # Treat outliers
+        self.treat_outliers(iqr_multiplier=iqr_multiplier)
+
+        # Reduce features based on statistical tests and correlation
+        self.reduce_features(class_values, corr_threshold=corr_threshold)
+
+        self.preprocessed= True
+
+        print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")

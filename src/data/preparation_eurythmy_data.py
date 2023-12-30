@@ -2,13 +2,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+"""
+This class gathers the eurythmy data related to eurythmy from
+text files and combines it with measurements_info.csv
 
-### Understand the data related to Eurythmy ###
-
-# - We know when the eurythmy was performed thanks of the video data (/data/raw/mp4_files)
-# - The data was hand labelled in text files (/data/raw/txt_files)
-# - The wav, text and video of a specific measurement share the 'id_measurement' (number at the start of the file #ID)
-
+Understand the data related to Eurythmy:
+ - We know when the eurythmy was performed thanks of the video data (/data/raw/mp4_files)
+ - The data was hand labelled in text files (/data/raw/txt_files)
+ - The wav, text and video of a specific measurement share the 'id_measurement'(number at the start of the file #ID)
+"""
 
 def read_eurythmy_text_files_to_dict(folder_path):
     """
@@ -196,9 +198,9 @@ def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder
     # Print the file path that has been used
     print(f"The DataFrame has been saved to: {output_file_path}")
 
-
+"""
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 measurements_csv_file= r"..\..\data\raw\measurements_info.csv"
 txt_folder= r"..\..\data\raw\txt_files"
 group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder)
-
+"""
