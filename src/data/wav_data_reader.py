@@ -3,7 +3,7 @@ import librosa
 
 class WavDataReader:
 
-    def __init__(self, folder: str = None, filename: str = None, sample_rate: int = 10000):
+    def __init__(self, folder: str = None, filename: str = None, sample_rate: int = 10000, extract_key: bool = False):
         """
         Initialize the ElectricalWaveDataReader instance.
 
@@ -12,7 +12,8 @@ class WavDataReader:
         :param sample_rate: The sample rate to use for audio files.
         """
         self.sample_rate = sample_rate
-        self.audio_data = {}
+        self.data = {}
+        self.extract_key= extract_key
 
         if folder:
             self.read_wav_files_in_folder(folder)
@@ -45,9 +46,10 @@ class WavDataReader:
                 # Load the audio file
                 audio, _ = librosa.load(file_path, sr=self.sample_rate)
 
-                # Store the audio data with the key
-                key = self.extract_key_from_filename(filename)
-                self.audio_data[key] = audio
+                # Store the audio data
+                if self.extract_key:
+                    filename = self.extract_key_from_filename(filename)
+                self.data[filename] = audio
 
     def read_single_wav_file(self, filename: str):
         """
@@ -59,13 +61,30 @@ class WavDataReader:
         audio, _ = librosa.load(filename, sr=self.sample_rate)
 
         # Store the audio data
-        key = self.extract_key_from_filename(filename)
-        self.audio_data[key] = audio
+        if self.extract_key:
+            filename = self.extract_key_from_filename(filename)
+        self.data[filename] = audio
 
-    def get_wav_data(self):
+    def get_data(self):
         """
         Returns the loaded audio data with filenames.
 
         :return: A dictionary of audio data where keys are filenames.
         """
-        return self.audio_data
+        return self.data
+    
+    def get_values(self):
+        """
+        Returns a list of the audio data values.
+
+        :return: A list of audio waveforms.
+        """
+        return list(self.data.values())
+
+    def get_keys(self):
+        """
+        Returns a list of the keys (identifiers) for the audio data.
+
+        :return: A list of keys.
+        """
+        return list(self.data.keys())

@@ -2,7 +2,7 @@ import librosa
 import numpy as np
 from scipy import stats
 
-class IndependentFeatureExtractor:
+class IndependentWavFeatureExtractor:
     def __init__(self, sample_rate: int= 10000, n_mfcc: int= 13, n_fft: int= 2000, hop_length: int= 500):
         """
         Initialize the AudioFeatureExtractor with default MFCC parameters.  
@@ -211,7 +211,6 @@ class IndependentFeatureExtractor:
             feature_values.extend([hj[0], hj[1]])
             feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
         except Exception:
-            print(Exception)
             feature_values.extend([np.nan, np.nan])
             feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
 
