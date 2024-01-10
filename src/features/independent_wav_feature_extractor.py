@@ -296,6 +296,8 @@ class IndependentWavFeatureExtractor:
         self.add_feature('slope_sign_changes_ratio', 
                                                 lambda x: (np.sum(np.diff(np.sign(np.diff(x))) != 0))/len(x), 
                                                 waveform, feature_values, feature_labels)
+        """
+        # More temporal features to add
         self.add_feature('duration_seconds', 
                                                 lambda x: len(x) / self.sample_rate, 
                                                 waveform, feature_values, feature_labels)
@@ -307,6 +309,7 @@ class IndependentWavFeatureExtractor:
                 self.add_feature(f'flatness_ratio_{ratio}', 
                                                         lambda x: self.extract_flatness_ratio(x, ratio), 
                                                         waveform, feature_values, feature_labels)
+        """
 
         return feature_values, feature_labels
 
@@ -341,7 +344,7 @@ class IndependentWavFeatureExtractor:
         return mfccs_features, feature_labels
 
 
-    def extract_all_features(self, waveform):
+    def extract_features_waveform(self, waveform, mfccs= True, temporal= True, statistical= True):
             """
             Extracts all features using the specified feature extraction methods and
             combines them into a single feature list along with their labels.
@@ -351,20 +354,43 @@ class IndependentWavFeatureExtractor:
             """
             feature_values = []
             feature_labels = []
+            
+            if mfccs:
+                # Extract MFCC features
+                mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
+                feature_values.extend(mfcc_values)
+                feature_labels.extend(mfcc_labels)
 
-            # Extract MFCC features
-            mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
-            feature_values.extend(mfcc_values)
-            feature_labels.extend(mfcc_labels)
+            if temporal:
+                # Extract temporal features
+                temporal_values, temporal_labels = self.extract_temporal_features(waveform)
+                feature_values.extend(temporal_values)
+                feature_labels.extend(temporal_labels)
 
-            # Extract temporal features
-            temporal_values, temporal_labels = self.extract_temporal_features(waveform)
-            feature_values.extend(temporal_values)
-            feature_labels.extend(temporal_labels)
-
-            # Extract statistical features
-            statistical_values, statistical_labels = self.extract_statistical_features(waveform)
-            feature_values.extend(statistical_values)
-            feature_labels.extend(statistical_labels)
+            if statistical:
+                # Extract statistical features
+                statistical_values, statistical_labels = self.extract_statistical_features(waveform)
+                feature_values.extend(statistical_values)
+                feature_labels.extend(statistical_labels)
 
             return feature_values, feature_labels
+    
+
+    def extract_features_multiple_waveforms(self, waveforms, mfccs=True, temporal=True, statistical=True):
+        """
+        Extracts features from a list of waveforms using specified feature extraction methods.
+
+        :param waveforms: A list of numpy arrays, each representing an audio waveform.
+        :param mfccs: Boolean flag to include MFCC features.
+        :param temporal: Boolean flag to include temporal features.
+        :param statistical: Boolean flag to include statistical features.
+        :return: Two lists - one containing all the feature values from all waveforms,
+                 and another containing all the corresponding feature labels.
+        """
+        all_feature_values = []
+
+        for waveform in waveforms:
+            feature_values, feature_labels = self.extract_features_waveform(waveform, mfccs, temporal, statistical)
+            all_feature_values.append(feature_values)
+
+        return all_feature_values, feature_labels

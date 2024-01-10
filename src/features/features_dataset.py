@@ -19,7 +19,6 @@ class FeaturesDataset(Dataset):
         assert len(features) == len(targets), "Features and targets must have the same length"
         self.features = pd.DataFrame(features, columns=feature_labels)
         self.targets = targets
-        self.preprocessed = False
 
     def __len__(self):
         """
@@ -118,9 +117,11 @@ class FeaturesDataset(Dataset):
         if method == 'zscore':
             # Z-score normalization
             self.features = (self.features - self.features.mean()) / self.features.std()
+            print('The Features were properly normalized using \'zscore\' method.')
         elif method == 'minmax':
             # Min-max normalization
             self.features = (self.features - self.features.min()) / (self.features.max() - self.features.min())
+            print('The Features were properly normalized using \'minmax\' method.')
         else:
             raise ValueError("Unsupported normalization method. Choose 'zscore' or 'minmax'.")
         
@@ -153,26 +154,25 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers have been treated based on the {iqr_multiplier} * IQR criterion.")
 
-
-    def reduce_features(self, class_values, corr_threshold=0.8):
+    def reduce_features(self, targets, corr_threshold=0.8):
         """
         Reduces features based on t-test/ANOVA and correlation matrix.
 
-        :param class_values: A list of class values corresponding to the targets.
+        :param targets: A list of class values corresponding to the targets.
         :param corr_threshold: Threshold for feature correlation. Features with correlation above this threshold
                                will be considered for removal based on their p-values.
         """
         # Perform t-test or ANOVA and store p-values
         p_values = []
-        num_classes = len(set(class_values))
+        num_classes = len(set(targets))
         for feature in self.features.columns:
             if num_classes == 2:
                 # Perform t-test for binary classification
-                p_value = stats.ttest_ind(self.features[feature][class_values == 0],
-                                          self.features[feature][class_values == 1]).pvalue
+                p_value = stats.ttest_ind(self.features[feature][targets[0]],
+                                          self.features[feature][targets[1]]).pvalue
             else:
                 # Perform ANOVA for multi-class classification
-                groups = [self.features[feature][class_values == val] for val in set(class_values)]
+                groups = [self.features[feature][targets == val] for val in set(targets)]
                 p_value = stats.f_oneway(*groups).pvalue
             p_values.append(p_value)
 
@@ -202,17 +202,18 @@ class FeaturesDataset(Dataset):
             removal_candidates = list(set(removal_candidates))
 
             # Update the DataFrame and correlation matrix
+            initial_number_columns= len(self.features.columns)
             self.features.drop(columns=removal_candidates, inplace=True)
             corr_matrix = self.features.corr().abs()
 
-        print(f"Reduced features from {len(self.features.columns)} to {self.features.shape[1]}.")
+        print(f"Reduced features from {initial_number_columns} to {len(self.features.columns)}.")
 
 
-    def preprocess_features(self, class_values, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
+    def preprocess_features(self, targets, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
         """
         Applies a sequence of preprocessing steps to the feature DataFrame.
 
-        :param class_values: A list of class values for the ANOVA/t-test in reduce_features.
+        :param targets: A list of class values for the ANOVA/t-test in reduce_features.
         :param normalize_method: The method of normalization ('zscore' or 'minmax').
         :param iqr_multiplier: The multiplier for IQR in treat_outliers.
         :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
@@ -227,8 +228,24 @@ class FeaturesDataset(Dataset):
         self.treat_outliers(iqr_multiplier=iqr_multiplier)
 
         # Reduce features based on statistical tests and correlation
-        self.reduce_features(class_values, corr_threshold=corr_threshold)
+        self.reduce_features(targets, corr_threshold=corr_threshold)
 
         self.preprocessed= True
 
         print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")
+
+    def head(self, n=5):
+        """
+        Displays the first n rows of the features DataFrame.
+
+        :param n: The number of rows to display. Defaults to 5.
+        """
+        return self.features.head(n)
+    
+    def shape(self):
+        """
+        Returns the shape of the features DataFrame.
+        """
+        return self.features.shape
+
+

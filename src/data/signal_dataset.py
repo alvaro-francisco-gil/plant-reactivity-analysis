@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 import numpy as np
+import matplotlib.pyplot as plt
 
 class SignalDataset(Dataset):
     def __init__(self, signals, labels, sample_rate: int= 10000):
@@ -7,12 +8,16 @@ class SignalDataset(Dataset):
         Initialize the SignalDataset instance.
 
         :param signals: A list or array of signal data.
-        :param labels: A list or array of labels corresponding to the signals.
+        :param labels: A list of labels corresponding to the signals, each element could be a list of labels.
         :param sample_rate: The sample rate of the signals.
         """
         assert len(signals) == len(labels), "The length of signals and labels must be the same."
+
+        # Ensure that each label is a list
+        formatted_labels = [label if isinstance(label, list) else [label] for label in labels]
+
         self.signals = signals
-        self.labels = labels
+        self.labels = formatted_labels
         self.sample_rate = sample_rate
         self.standardization = 'None'
 
@@ -28,7 +33,7 @@ class SignalDataset(Dataset):
         """
         return self.signals[idx], self.labels[idx]
 
-    def trim_signals(self, time_intervals):
+    def reduce_signals_given_intervals(self, time_intervals):
         """
         Trims the signals in the dataset based on the provided time intervals.
 
@@ -44,7 +49,6 @@ class SignalDataset(Dataset):
             trimmed_signals.append(trimmed_signal)
 
         self.signals = trimmed_signals
-        self.transformed = True
     
     
     # Standardization Methods
@@ -144,18 +148,6 @@ class SignalDataset(Dataset):
         """
         return self.signals, self.labels
 
-    def get_datapoint_by_key(self, key):
-        """
-        Returns the signal-label pair corresponding to the given key.
-        
-        Note: This method assumes that 'key' is an identifier within the labels list.
-        """
-        try:
-            idx = self.labels.index(key)
-            return self.signals[idx], self.labels[idx]
-        except ValueError:
-            return None
-
     def get_datapoint_by_index(self, idx):
         """
         Returns the signal-label pair at the specified index.
@@ -164,3 +156,59 @@ class SignalDataset(Dataset):
             return self.signals[idx], self.labels[idx]
         else:
             return None
+
+    def segment_signals(self, segment_duration):
+        """
+        Segments each signal into smaller segments of a specified duration.
+
+        :param segment_duration: Duration of each segment in seconds.
+        """
+        new_signals = []
+        new_labels = []
+        num_samples_per_segment = int(self.sample_rate * segment_duration)
+
+        for signal, label in zip(self.signals, self.labels):
+            for start in range(0, len(signal), num_samples_per_segment):
+                end = start + num_samples_per_segment
+                if end <= len(signal):
+                    segment = signal[start:end]
+                    new_signals.append(segment)
+                    # Copy the original label and append the start second of the segment
+                    segment_label = label.copy()  # Create a copy of the original label
+                    segment_label.append('segment_'+ str(start / self.sample_rate))  # Append the start time
+                    new_labels.append(segment_label)
+
+        self.signals = new_signals
+        self.labels = new_labels
+
+    def display_dataset(self):
+        """
+        Displays each signal in the dataset with its corresponding labels.
+        """
+        for i, (signal, label) in enumerate(zip(self.signals, self.labels)):
+            plt.figure()
+            time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
+            plt.plot(time_axis, signal)
+            plt.title(f'Labels: {label}')
+            plt.xlabel('Time (seconds)')
+            plt.ylabel('Amplitude')
+            plt.show()
+
+    def display_signal(self, index):
+        """
+        Displays a single signal from the dataset.
+
+        :param index: The index of the signal to display.
+        """
+        if index < len(self.signals):
+            signal = self.signals[index]
+            label = self.labels[index]
+            plt.figure()
+            time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
+            plt.plot(time_axis, signal)
+            plt.title(f'Labels: {label}')
+            plt.xlabel('Time (seconds)')
+            plt.ylabel('Amplitude')
+            plt.show()
+        else:
+            print(f"Index {index} is out of bounds for the dataset.")
