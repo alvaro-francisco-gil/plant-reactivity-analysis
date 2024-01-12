@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class SignalDataset(Dataset):
-    def __init__(self, signals, labels, sample_rate: int= 10000):
+    def __init__(self, signals, labels, sample_rate: int = 10000):
         """
         Initialize the SignalDataset instance.
 
@@ -13,8 +13,8 @@ class SignalDataset(Dataset):
         """
         assert len(signals) == len(labels), "The length of signals and labels must be the same."
 
-        # Ensure that each label is a list
-        formatted_labels = [label if isinstance(label, list) else [label] for label in labels]
+        # Convert each label set to a tuple
+        formatted_labels = [tuple(label) if isinstance(label, list) else (label,) for label in labels]
 
         self.signals = signals
         self.labels = formatted_labels
@@ -32,26 +32,72 @@ class SignalDataset(Dataset):
         Fetch the signal and its corresponding label at the specified index.
         """
         return self.signals[idx], self.labels[idx]
+    
+    # GETTERS AND SETTERS
 
-    def reduce_signals_given_intervals(self, time_intervals):
+    def get_labels(self):
         """
-        Trims the signals in the dataset based on the provided time intervals.
-
-        :param time_intervals: A list of tuples, each containing start and end times in seconds.
+        Returns the labels of the dataset.
         """
-        assert len(time_intervals) == len(self.signals), "Time intervals must match the number of signals."
+        return self.labels
+    
+    def get_labels_by_indexes(self, indexes):
+        """
+        Retrieve labels for specified indexes.
 
-        trimmed_signals = []
-        for signal, (start_time, end_time) in zip(self.signals, time_intervals):
-            start_sample = int(start_time * self.sample_rate)
-            end_sample = int(end_time * self.sample_rate)
-            trimmed_signal = signal[start_sample:end_sample]
-            trimmed_signals.append(trimmed_signal)
+        :param indexes: A list of index positions for which to retrieve labels.
+        :return: A list of labels corresponding to the specified indexes.
+        """
+        # Ensure that the requested indexes are within the bounds of the labels list
+        if max(indexes, default=-1) < len(self.labels):
+            return [self.labels[idx] for idx in indexes if idx < len(self.labels)]
+        else:
+            print("Warning: Some requested indexes are out of bounds.")
+            return [self.labels[idx] for idx in indexes if idx < len(self.labels)]
+        
 
-        self.signals = trimmed_signals
+    def get_labels_by_columns(self, columns):
+        """
+        Retrieve labels for specified columns.
+
+        :param columns: A list of column positions for which to retrieve label elements.
+        :return: A list of lists, each containing the label elements for the specified columns.
+        """
+        extracted_labels = []
+
+        # Iterate over each label
+        for label in self.labels:
+            # Extract the elements from the label based on the specified columns
+            extracted_label = [label[col] for col in columns if col < len(label)]
+            extracted_labels.append(extracted_label)
+
+        return extracted_labels
+
+
+    def get_signals(self):
+        """
+        Returns the signals of the dataset.
+        """
+        return self.signals
+
+    def get_data(self):
+        """
+        Returns all the signal-label pairs in the dataset.
+        """
+        return self.signals, self.labels
+
+    def get_datapoint_by_index(self, idx):
+        """
+        Returns the signal-label pair at the specified index.
+        """
+        if idx < len(self.signals):
+            return self.signals[idx], self.labels[idx]
+        else:
+            return None
+
     
     
-    # Standardization Methods
+    # STANDARDIZATION METHODS
         
     @staticmethod
     def standardize_wave_peak(waveform):
@@ -130,32 +176,7 @@ class SignalDataset(Dataset):
         # Update the standardization attribute
         self.standardization = method
 
-    def get_labels(self):
-        """
-        Returns the labels of the dataset.
-        """
-        return self.labels
-
-    def get_signals(self):
-        """
-        Returns the signals of the dataset.
-        """
-        return self.signals
-
-    def get_data(self):
-        """
-        Returns all the signal-label pairs in the dataset.
-        """
-        return self.signals, self.labels
-
-    def get_datapoint_by_index(self, idx):
-        """
-        Returns the signal-label pair at the specified index.
-        """
-        if idx < len(self.signals):
-            return self.signals[idx], self.labels[idx]
-        else:
-            return None
+    # MANIPULATE DATASET
 
     def segment_signals(self, segment_duration):
         """
@@ -173,13 +194,14 @@ class SignalDataset(Dataset):
                 if end <= len(signal):
                     segment = signal[start:end]
                     new_signals.append(segment)
-                    # Copy the original label and append the start second of the segment
-                    segment_label = label.copy()  # Create a copy of the original label
-                    segment_label.append('segment_'+ str(start / self.sample_rate))  # Append the start time
+                    
+                    # Create a new tuple by adding the start second of the segment
+                    segment_label = label + (start / self.sample_rate,)  # Concatenate tuples
                     new_labels.append(segment_label)
 
         self.signals = new_signals
         self.labels = new_labels
+
 
     def display_dataset(self):
         """
@@ -212,3 +234,76 @@ class SignalDataset(Dataset):
             plt.show()
         else:
             print(f"Index {index} is out of bounds for the dataset.")
+
+    
+    def reduce_signals_given_intervals(self, time_intervals):
+        """
+        Trims the signals in the dataset based on the provided time intervals.
+
+        :param time_intervals: A list of tuples, each containing start and end times in seconds.
+        """
+        assert len(time_intervals) == len(self.signals), "Time intervals must match the number of signals."
+
+        trimmed_signals = []
+        for signal, (start_time, end_time) in zip(self.signals, time_intervals):
+            start_sample = int(start_time * self.sample_rate)
+            end_sample = int(end_time * self.sample_rate)
+            trimmed_signal = signal[start_sample:end_sample]
+            trimmed_signals.append(trimmed_signal)
+
+        self.signals = trimmed_signals
+
+    def add_labels(self, new_labels):
+        """
+        Add labels to the dataset.
+
+        :param new_labels: A list of labels to add to the dataset. Each element can be a single value or a list.
+        """
+        assert len(new_labels) == len(self.labels), "The length of new_labels must match the existing labels."
+
+        updated_labels = []
+        for i in range(len(self.labels)):
+            # Convert current label tuple to a list
+            current_label_list = list(self.labels[i])
+
+            # Check if new_labels[i] is a list or a single value
+            if isinstance(new_labels[i], list):
+                # Extend the list with the elements of new_labels[i]
+                current_label_list.extend(new_labels[i])
+            elif new_labels[i] is not None:  # Check for None or nan (float('nan'))
+                # Append the single value of new_labels[i]
+                current_label_list.append(new_labels[i])
+
+            # Convert back to tuple and add to the updated labels list
+            updated_labels.append(tuple(current_label_list))
+
+        self.labels = updated_labels
+
+    def reset_labels(self):
+        """
+        Resets the labels to an empty tuple for each signal in the dataset.
+        """
+        if len(self.labels) == len(self.signals):
+            self.labels = [tuple() for _ in range(len(self.signals))]
+        else:
+            print("Warning: The number of labels does not match the number of signals. Labels were not reset.")
+
+
+    def remove_signals_with_nan_labels(self):
+        """
+        Removes signals that have any label equal to np.nan.
+        """
+        # Create a new list for signals and labels without nan labels
+        filtered_signals = []
+        filtered_labels = []
+
+        # Iterate over each signal and its corresponding label
+        for signal, label in zip(self.signals, self.labels):
+            # Check if any element in the label tuple is np.nan
+            if not any(np.isnan(element) if isinstance(element, float) else False for element in label):
+                filtered_signals.append(signal)
+                filtered_labels.append(label)
+
+        # Update the signals and labels with the filtered lists
+        self.signals = filtered_signals
+        self.labels = filtered_labels
