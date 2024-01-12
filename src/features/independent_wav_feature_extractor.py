@@ -296,7 +296,7 @@ class IndependentWavFeatureExtractor:
         self.add_feature('slope_sign_changes_ratio', 
                                                 lambda x: (np.sum(np.diff(np.sign(np.diff(x))) != 0))/len(x), 
                                                 waveform, feature_values, feature_labels)
-        """
+        
         # More temporal features to add
         self.add_feature('duration_seconds', 
                                                 lambda x: len(x) / self.sample_rate, 
@@ -309,7 +309,7 @@ class IndependentWavFeatureExtractor:
                 self.add_feature(f'flatness_ratio_{ratio}', 
                                                         lambda x: self.extract_flatness_ratio(x, ratio), 
                                                         waveform, feature_values, feature_labels)
-        """
+        
 
         return feature_values, feature_labels
 
