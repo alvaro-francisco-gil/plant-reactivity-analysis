@@ -1,9 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 """
-This class gathers the eurythmy data related to eurythmy from
+The following functions gather the eurythmy data related to eurythmy from
 text files and combines it with measurements_info.csv
 
 Understand the data related to Eurythmy:
@@ -204,3 +205,156 @@ measurements_csv_file= r"..\..\data\raw\measurements_info.csv"
 txt_folder= r"..\..\data\raw\txt_files"
 group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder)
 """
+
+def extract_data_by_index_and_columns(df, indexes, columns):
+    """
+    Extracts a dictionary from a DataFrame based on given indexes and columns.
+
+    :param df: The pandas DataFrame to extract data from.
+    :param indexes: A list of indexes to extract data for.
+    :param columns: A list of columns to extract data for.
+    :return: A dictionary where each key is an index and each value is another dictionary with columns as keys.
+    """
+    extracted_data = {}
+    for index in indexes:
+        if index in df.index:
+            # Extract data for the given index and specified columns
+            extracted_data[index] = {col: df.at[index, col] for col in columns if col in df.columns}
+        else:
+            # Handle case where index is not in the DataFrame
+            extracted_data[index] = {col: None for col in columns}
+    return extracted_data
+
+def get_values_as_list_of_lists(df, columns, indexes):
+    # Check if all columns exist in the DataFrame
+    if not all(col in df.columns for col in columns):
+        raise ValueError("One or more columns not found in the DataFrame")
+
+    # Check if all indexes are within the DataFrame's range
+    if not all(idx in df.index for idx in indexes):
+        raise ValueError("One or more indexes not found in the DataFrame")
+
+    # Retrieve values as a list of lists
+    values_list = df.loc[indexes, columns].values.tolist()
+
+    return values_list
+
+def transform_dict(original_dict):
+    transformed_dict = {}
+    for key, value in original_dict.items():
+        transformed_entry = {}
+        for label, time in value.items():
+            base_label = label[:2]  # Extract base label (like 'A1', 'G1')
+
+            # Initialize with [None, None] only if it hasn't been initialized yet
+            if base_label not in transformed_entry:
+                transformed_entry[base_label] = [None, None]
+
+            # Set start or end time
+            if '_start' in label:
+                transformed_entry[base_label][0] = time
+            elif '_end' in label:
+                transformed_entry[base_label][1] = time
+
+        # Remove entries with both values as None or np.nan
+        transformed_entry = {k: v for k, v in transformed_entry.items() if not all(np.isnan(val) if isinstance(val, float) else val is None for val in v)}
+
+        transformed_dict[key] = transformed_entry
+    return transformed_dict
+
+def adjust_times(data_dict, adjustment_list):
+    """
+    Adjusts the times in the data dictionary based on a list of adjustments.
+
+    :param data_dict: Dictionary with keys as identifiers and values as another dictionary of time ranges.
+    :param adjustment_list: List of tuples, each representing an adjustment to be made.
+    :return: A new dictionary with adjusted time ranges.
+    """
+    adjusted_dict = {}
+    for (key, time_ranges), (subtraction_value, _) in zip(data_dict.items(), adjustment_list):
+        adjusted_time_ranges = {label: [max(0, start - subtraction_value), max(0, end - subtraction_value)]
+                                for label, (start, end) in time_ranges.items()}
+        adjusted_dict[key] = adjusted_time_ranges
+    return adjusted_dict
+
+def add_label_to_tuples(labels, time_dict):
+    """
+    Adds a new element to each tuple in labels based on the time ranges in time_dict.
+
+    :param labels: List of tuples, where each tuple contains [key, ..., position].
+    :param time_dict: Dictionary with keys and time ranges.
+    :return: A new list of tuples with a new label element added.
+    """
+    new_labels = []
+    for label_tuple in labels:
+        key = label_tuple[0]  # First element is the key
+        position = label_tuple[-1]  # Last element is the position
+
+        # Access the corresponding time ranges
+        time_ranges = time_dict.get(key, {})
+
+        # Find which range the position falls into and create a new tuple
+        new_label_tuple = label_tuple  # Initialize with the original tuple
+        for label, (start, end) in time_ranges.items():
+            if start <= position <= end:
+                # Create a new tuple with the additional label
+                new_label_tuple = label_tuple + (label,)
+                break
+
+        new_labels.append(new_label_tuple)
+
+    return new_labels
+
+
+def extract_seventh_element(list_of_lists):
+    """
+    Extracts the 7th element from each list in a list of lists.
+    If the 7th element does not exist, -1 is appended instead.
+
+    :param list_of_lists: List of lists from which to extract the 7th element.
+    :return: List containing the 7th elements or -1.
+    """
+    extracted_elements = []
+    for lst in list_of_lists:
+        # Append the 7th element or -1 if it doesn't exist
+        extracted_elements.append(lst[7] if len(lst) > 7 else np.nan)
+
+    return extracted_elements
+
+def return_meas_labels_by_keys(keys):
+
+    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
+    df_meas = pd.read_csv(meas_file, index_col='id_measurement')
+    columns_to_include = ['id_performance', 'datetime', 'plant', 'generation', 'num_eurythmy'] 
+    meas_labels= get_values_as_list_of_lists(df_meas, columns_to_include,  keys)
+
+    return meas_labels
+
+def return_meas_time_intervals(keys):
+
+    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
+    df_meas = pd.read_csv(meas_file, index_col='id_measurement')
+    time_intervals= get_values_as_list_of_lists(df_meas, ['eurythmy_start', 'eurythmy_end'],  keys)
+
+    return time_intervals
+
+def return_meas_letters(keys, labels, time_intervals):
+
+    letter_columns= ['A1_start', 'A1_end', 'G1_start', 'G1_end', 'D1_start',
+       'D1_end', 'A2_start', 'A2_end', 'G2_start', 'G2_end', 'D2_start',
+       'D2_end', 'A3_start', 'A3_end', 'G3_start', 'G3_end', 'D3_start',
+       'D3_end', 'A4_start', 'A4_end', 'G4_start', 'G4_end', 'D4_start',
+       'D4_end', 'O1_start', 'O1_end', 'O2_start', 'O2_end', 'O3_start',
+       'O3_end', 'O4_start', 'O4_end', 'L1_start', 'L1_end', 'L2_start',
+       'L2_end', 'L3_start', 'L3_end', 'L4_start', 'L4_end']
+    
+    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
+    df_meas = pd.read_csv(meas_file, index_col='id_measurement')
+
+    letter_dictionary= extract_data_by_index_and_columns(df_meas, keys, letter_columns)
+    letter_dictionary = transform_dict(letter_dictionary)
+    letter_reduced_dictionary = adjust_times(letter_dictionary, time_intervals)
+    updated_labels= add_label_to_tuples(labels, letter_reduced_dictionary)
+    final_labels= extract_seventh_element(updated_labels)
+    
+    return final_labels
