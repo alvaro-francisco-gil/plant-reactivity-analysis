@@ -19,6 +19,7 @@ class FeaturesDataset(Dataset):
         assert len(features) == len(targets), "Features and targets must have the same length"
         self.features = pd.DataFrame(features, columns=feature_labels)
         self.targets = targets
+        self.processed = False
 
     def __len__(self):
         """
@@ -94,6 +95,13 @@ class FeaturesDataset(Dataset):
         :return: A tuple containing two lists: the list of feature vectors and the list of targets.
         """
         return self.get_features(), self.get_targets()
+
+    def get_feature_labels(self):
+        """
+        Returns the feature labels (column names) of the features DataFrame.
+        """
+        return self.features.columns.tolist()
+
 
     def remove_nan_columns(self):
         """
@@ -209,7 +217,7 @@ class FeaturesDataset(Dataset):
         print(f"Reduced features from {initial_number_columns} to {len(self.features.columns)}.")
 
 
-    def preprocess_features(self, targets, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
+    def process_features(self, targets, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
         """
         Applies a sequence of preprocessing steps to the feature DataFrame.
 
@@ -230,7 +238,7 @@ class FeaturesDataset(Dataset):
         # Reduce features based on statistical tests and correlation
         self.reduce_features(targets, corr_threshold=corr_threshold)
 
-        self.preprocessed= True
+        self.processed= True
 
         print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")
 
@@ -248,4 +256,25 @@ class FeaturesDataset(Dataset):
         """
         return self.features.shape
 
+
+    def drop_columns(self, columns_to_drop: list):
+        """
+        Drops specified columns from the features DataFrame.
+
+        :param columns_to_drop: A list of column names to be dropped.
+        """
+        self.features = self.features.drop(columns=columns_to_drop, errors='ignore')
+
+
+    def drop_rows(self, row_indices: list):
+        """
+        Drops rows from the features DataFrame and the corresponding elements from the targets list.
+
+        :param row_indices: A list of indices of rows to be dropped.
+        """
+        # Drop rows from the features DataFrame
+        self.features = self.features.drop(row_indices, errors='ignore').reset_index(drop=True)
+
+        # Drop the corresponding targets
+        self.targets = [target for idx, target in enumerate(self.targets) if idx not in row_indices]
 

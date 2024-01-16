@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
 
+import data.preparation_eurythmy_data as ped
+
 class SignalDataset(Dataset):
     def __init__(self, signals, labels, sample_rate: int = 10000):
         """
@@ -73,6 +75,17 @@ class SignalDataset(Dataset):
 
         return extracted_labels
 
+    def get_labels_at_index(self, index):
+        """
+        Returns a list of labels at the given index for each label tuple.
+
+        :param index: The index within each label tuple to retrieve.
+        :return: A list of labels at the specified index.
+        """
+        if not all(isinstance(label, tuple) and len(label) > index for label in self.labels):
+            raise IndexError("Index out of range for some label tuples.")
+
+        return [label[index] for label in self.labels]
 
     def get_signals(self):
         """
@@ -307,3 +320,17 @@ class SignalDataset(Dataset):
         # Update the signals and labels with the filtered lists
         self.signals = filtered_signals
         self.labels = filtered_labels
+
+    def process_dataset_adding_eurythmy_labels(self):
+
+        #Process Dataset adding Measurement Labels
+        self.standardize_signals("zscore") 
+        keys= self.get_labels_at_index(0)
+        meas_labels= ped.return_meas_labels_by_keys(keys)
+        self.add_labels(meas_labels)
+        self.segment_signals(segment_duration=1)
+        labels= self.get_labels()
+        letter_labels= ped.return_meas_letters(keys, labels)
+        self.add_labels(letter_labels)
+
+

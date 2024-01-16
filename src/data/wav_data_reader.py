@@ -3,7 +3,7 @@ import librosa
 
 class WavDataReader:
 
-    def __init__(self, folder: str = None, filename: str = None, sample_rate: int = 10000, extract_key: bool = False):
+    def __init__(self, folder: str = None, filename: str = None, sample_rate: int = 10000, extract_key: bool = True):
         """
         Initialize the ElectricalWaveDataReader instance.
 
@@ -88,3 +88,14 @@ class WavDataReader:
         :return: A list of keys.
         """
         return list(self.data.keys())
+    
+    def get_values_and_keys(self):
+        """
+        Returns a list of the values and a list of the keys.
+
+        :return: A list of values, a list of keys.
+        """
+        values= self.get_values
+        keys= self.get_keys
+
+        return values,keys

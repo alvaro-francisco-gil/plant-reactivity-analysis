@@ -262,21 +262,6 @@ def transform_dict(original_dict):
         transformed_dict[key] = transformed_entry
     return transformed_dict
 
-def adjust_times(data_dict, adjustment_list):
-    """
-    Adjusts the times in the data dictionary based on a list of adjustments.
-
-    :param data_dict: Dictionary with keys as identifiers and values as another dictionary of time ranges.
-    :param adjustment_list: List of tuples, each representing an adjustment to be made.
-    :return: A new dictionary with adjusted time ranges.
-    """
-    adjusted_dict = {}
-    for (key, time_ranges), (subtraction_value, _) in zip(data_dict.items(), adjustment_list):
-        adjusted_time_ranges = {label: [max(0, start - subtraction_value), max(0, end - subtraction_value)]
-                                for label, (start, end) in time_ranges.items()}
-        adjusted_dict[key] = adjusted_time_ranges
-    return adjusted_dict
-
 def add_label_to_tuples(labels, time_dict):
     """
     Adds a new element to each tuple in labels based on the time ranges in time_dict.
@@ -338,7 +323,7 @@ def return_meas_time_intervals(keys):
 
     return time_intervals
 
-def return_meas_letters(keys, labels, time_intervals):
+def return_meas_letters(keys, labels):
 
     letter_columns= ['A1_start', 'A1_end', 'G1_start', 'G1_end', 'D1_start',
        'D1_end', 'A2_start', 'A2_end', 'G2_start', 'G2_end', 'D2_start',
@@ -353,8 +338,7 @@ def return_meas_letters(keys, labels, time_intervals):
 
     letter_dictionary= extract_data_by_index_and_columns(df_meas, keys, letter_columns)
     letter_dictionary = transform_dict(letter_dictionary)
-    letter_reduced_dictionary = adjust_times(letter_dictionary, time_intervals)
-    updated_labels= add_label_to_tuples(labels, letter_reduced_dictionary)
+    updated_labels= add_label_to_tuples(labels, letter_dictionary)
     final_labels= extract_seventh_element(updated_labels)
     
     return final_labels
