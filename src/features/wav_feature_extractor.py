@@ -2,21 +2,15 @@ import librosa
 import numpy as np
 from scipy import stats
 
-class IndependentWavFeatureExtractor:
-    def __init__(self, sample_rate: int= 10000, n_mfcc: int= 13, n_fft: int= 2000, hop_length: int= 500):
+class WavFeatureExtractor:
+    def __init__(self, sample_rate: int = 10000):
         """
-        Initialize the AudioFeatureExtractor with default MFCC parameters.  
+        Initialize the AudioFeatureExtractor with default parameters.  
 
         :param sample_rate: Sample rate of the audio.
-        :param n_mfcc: Number of MFCCs to return.
-        :param n_fft: Length of the FFT window.
-        :param hop_length: Number of samples between successive frames.
         """
         self.sample_rate = sample_rate
-        self.n_mfcc = n_mfcc
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.standardization = 'None'
+        self.standardization = 'None' 
 
     @staticmethod
     def add_feature(name, func, waveform_data, feature_values, feature_labels):
@@ -313,12 +307,15 @@ class IndependentWavFeatureExtractor:
 
         return feature_values, feature_labels
 
-    def extract_mfcc_features(self, waveform):
+    def extract_mfcc_features(self, waveform, n_mfcc: int = 13, n_fft: int = 2000, hop_length: int = 500):
         """
         Extracts MFCC features from an audio waveform, computes the average and standard 
         deviation of each MFCC across time, and returns these statistics along with their labels.
 
         :param waveform: A numpy array representing the audio waveform.
+        :param n_mfcc: Number of MFCCs to return.
+        :param n_fft: Length of the FFT window.
+        :param hop_length: Number of samples between successive frames.
         :return: A tuple containing two elements: a numpy array of the MFCC statistics and a list of corresponding labels.
         """
         # Ensure the waveform is in floating point format for calculations
@@ -326,16 +323,16 @@ class IndependentWavFeatureExtractor:
             waveform = waveform.astype(np.float64)
 
         # Extract MFCCs from the waveform
-        mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=self.n_mfcc, 
-                                     n_fft=self.n_fft, hop_length=self.hop_length)
+        mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, 
+                                     n_fft=n_fft, hop_length=hop_length)
 
         # Calculate the average and standard deviation of each MFCC
         mfccs_avg = np.mean(mfccs, axis=1)
         mfccs_std = np.std(mfccs, axis=1)
 
         # Generate labels for each MFCC statistic
-        avg_labels = [f'mfcc_{i+1}_avg' for i in range(self.n_mfcc)]
-        std_labels = [f'mfcc_{i+1}_std' for i in range(self.n_mfcc)]
+        avg_labels = [f'mfcc_{i+1}_avg' for i in range(n_mfcc)]
+        std_labels = [f'mfcc_{i+1}_std' for i in range(n_mfcc)]
 
         # Concatenate the averaged and standard deviation features and their labels
         mfccs_features = np.concatenate((mfccs_avg, mfccs_std))
