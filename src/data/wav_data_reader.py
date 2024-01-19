@@ -99,3 +99,11 @@ class WavDataReader:
         keys= self.get_keys
 
         return values,keys
+    
+    def get_sample_rate(self):
+        """
+        Returns the sample rate
+
+        :return: An integer representing sample_rate
+        """
+        return self.sample_rate

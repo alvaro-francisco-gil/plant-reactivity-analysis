@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import data.preparation_eurythmy_data as ped
 
 class SignalDataset(Dataset):
-    def __init__(self, signals, labels, sample_rate: int = 10000):
+    def __init__(self, signals, labels, target_index: int = 0, sample_rate: int = 10000):
         """
         Initialize the SignalDataset instance.
 
         :param signals: A list or array of signal data.
         :param labels: A list of labels corresponding to the signals, each element could be a list of labels.
         :param sample_rate: The sample rate of the signals.
+        :param target_index: An integer representing the position of the target in the labels
         """
         assert len(signals) == len(labels), "The length of signals and labels must be the same."
 
@@ -21,7 +22,8 @@ class SignalDataset(Dataset):
         self.signals = signals
         self.labels = formatted_labels
         self.sample_rate = sample_rate
-        self.standardization = 'None'
+        self.target_index = target_index
+        self.standardization = None
 
     def __len__(self):
         """
@@ -33,7 +35,7 @@ class SignalDataset(Dataset):
         """
         Fetch the signal and its corresponding label at the specified index.
         """
-        return self.signals[idx], self.labels[idx]
+        return self.signals[idx], self.labels[idx][self.target_index]
     
     # GETTERS AND SETTERS
 
@@ -107,9 +109,22 @@ class SignalDataset(Dataset):
             return self.signals[idx], self.labels[idx]
         else:
             return None
+        
+    def set_index_target(self, idx: int):
+        """
+        Sets the index of the labels corresponding to target
+        """
+        self.target_index= idx
 
-    
-    
+    def get_targets(self):
+        """
+        Retrieve the target labels based on the target_index.
+
+        :return: A list of target labels.
+        """
+        return [label[self.target_index] for label in self.labels]
+
+
     # STANDARDIZATION METHODS
         
     @staticmethod
@@ -215,7 +230,6 @@ class SignalDataset(Dataset):
         self.signals = new_signals
         self.labels = new_labels
 
-
     def display_dataset(self):
         """
         Displays each signal in the dataset with its corresponding labels.
@@ -248,7 +262,6 @@ class SignalDataset(Dataset):
         else:
             print(f"Index {index} is out of bounds for the dataset.")
 
-    
     def reduce_signals_given_intervals(self, time_intervals):
         """
         Trims the signals in the dataset based on the provided time intervals.
@@ -301,7 +314,6 @@ class SignalDataset(Dataset):
         else:
             print("Warning: The number of labels does not match the number of signals. Labels were not reset.")
 
-
     def remove_signals_with_nan_labels(self):
         """
         Removes signals that have any label equal to np.nan.
@@ -321,6 +333,21 @@ class SignalDataset(Dataset):
         self.signals = filtered_signals
         self.labels = filtered_labels
 
+    def remove_constant_signals(self):
+        """
+        Remove constant signals and their corresponding labels.
+        """
+        non_constant_signals = []
+        non_constant_labels = []
+
+        for signal, label in zip(self.signals, self.labels):
+            if len(set(signal)) > 1:  # Check if the signal is non-constant
+                non_constant_signals.append(signal)
+                non_constant_labels.append(label)
+
+        self.signals = non_constant_signals
+        self.labels = non_constant_labels
+
     def process_dataset_adding_eurythmy_labels(self):
 
         #Process Dataset adding Measurement Labels
@@ -329,6 +356,7 @@ class SignalDataset(Dataset):
         meas_labels= ped.return_meas_labels_by_keys(keys)
         self.add_labels(meas_labels)
         self.segment_signals(segment_duration=1)
+        self.remove_constant_signals()
         labels= self.get_labels()
         letter_labels= ped.return_meas_letters(keys, labels)
         self.add_labels(letter_labels)

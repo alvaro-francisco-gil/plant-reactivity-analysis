@@ -1,5 +1,7 @@
 import pandas as pd
-from torch.utils.data import Dataset
+import torch
+from torch.utils.data import Dataset, Subset, DataLoader
+from sklearn.model_selection import train_test_split
 from scipy import stats
 import numpy as np
 
@@ -36,9 +38,14 @@ class FeaturesDataset(Dataset):
         :param idx: The index of the sample to retrieve.
         :return: A tuple containing the feature vector and its corresponding target.
         """
-        feature = self.features.iloc[idx].values.tolist()
+        feature = self.features.iloc[idx].values
         target = self.targets[idx]
-        return feature, target
+
+        # Convert to PyTorch tensors
+        feature_tensor = torch.tensor(feature, dtype=torch.float32)
+        target_tensor = torch.tensor(target, dtype=torch.long)  # Use torch.float32 if it's a regression task
+
+        return feature_tensor, target_tensor
 
     def save_to_csv(self, filepath):
         """
@@ -216,32 +223,6 @@ class FeaturesDataset(Dataset):
 
         print(f"Reduced features from {initial_number_columns} to {len(self.features.columns)}.")
 
-
-    def process_features(self, targets, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
-        """
-        Applies a sequence of preprocessing steps to the feature DataFrame.
-
-        :param targets: A list of class values for the ANOVA/t-test in reduce_features.
-        :param normalize_method: The method of normalization ('zscore' or 'minmax').
-        :param iqr_multiplier: The multiplier for IQR in treat_outliers.
-        :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
-        """
-        # Remove columns with NaN values
-        self.remove_nan_columns()
-
-        # Normalize features
-        self.normalize_features(method=normalize_method)
-
-        # Treat outliers
-        self.treat_outliers(iqr_multiplier=iqr_multiplier)
-
-        # Reduce features based on statistical tests and correlation
-        self.reduce_features(targets, corr_threshold=corr_threshold)
-
-        self.processed= True
-
-        print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")
-
     def head(self, n=5):
         """
         Displays the first n rows of the features DataFrame.
@@ -278,3 +259,55 @@ class FeaturesDataset(Dataset):
         # Drop the corresponding targets
         self.targets = [target for idx, target in enumerate(self.targets) if idx not in row_indices]
 
+    def split_dataset_in_loaders(self, test_size=0.3, val_size=0.5, random_state=42, batch_size = 32):
+        """
+        Splits the dataset into training, validation, and testing loaders.
+
+        :param test_size: Proportion of the dataset to include in the test split.
+        :param val_size: Proportion of the test set to include in the validation set.
+        :param random_state: Random state for reproducibility.
+        :return: A tuple (train_dataset, val_dataset, test_dataset).
+        """
+        dataset_size = len(self)
+        indices = list(range(dataset_size))
+        train_indices, test_indices = train_test_split(indices, test_size=test_size, random_state=random_state)
+        val_indices, test_indices = train_test_split(test_indices, test_size=val_size, random_state=random_state)
+
+        train_dataset = Subset(self, train_indices)
+        val_dataset = Subset(self, val_indices)
+        test_dataset = Subset(self, test_indices)
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+        return train_loader, val_loader, test_loader
+
+    def process_features(self, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
+        """
+        Applies a sequence of preprocessing steps to the feature DataFrame.
+
+        :param targets: A list of class values for the ANOVA/t-test in reduce_features.
+        :param normalize_method: The method of normalization ('zscore' or 'minmax').
+        :param iqr_multiplier: The multiplier for IQR in treat_outliers.
+        :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
+        """
+        # Remove specific columns
+        columns=['duration_seconds', 'flatness_ratio_10000','flatness_ratio_5000', 'flatness_ratio_1000', 'flatness_ratio_500','flatness_ratio_100',]
+        self.drop_columns(columns_to_drop=columns)
+
+        # Remove columns with NaN values
+        self.remove_nan_columns()
+
+        # Normalize features
+        self.normalize_features(method=normalize_method)
+
+        # Treat outliers
+        self.treat_outliers(iqr_multiplier=iqr_multiplier)
+
+        # Reduce features based on statistical tests and correlation
+        self.reduce_features(self.targets, corr_threshold=corr_threshold)
+
+        self.processed= True
+
+        print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")
