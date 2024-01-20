@@ -206,6 +206,25 @@ txt_folder= r"..\..\data\raw\txt_files"
 group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder)
 """
 
+def return_meas_labels_by_keys(keys):
+    """
+    Returns a DataFrame with specified measurements based on given keys, 
+    including 'id_measurement' as a regular column.
+
+    :param keys: A list of keys to filter the measurements.
+    :return: A DataFrame with selected columns for the specified keys.
+    """
+
+    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
+    df_meas = pd.read_csv(meas_file)
+
+    columns_to_include = ['id_measurement', 'id_performance', 'datetime', 'plant', 'generation', 'num_eurythmy']
+    
+    # Filter the DataFrame by keys and columns
+    filtered_df = df_meas[df_meas['id_measurement'].isin(keys)][columns_to_include]
+
+    return filtered_df
+
 def extract_data_by_index_and_columns(df, indexes, columns):
     """
     Extracts a dictionary from a DataFrame based on given indexes and columns.
@@ -225,21 +244,17 @@ def extract_data_by_index_and_columns(df, indexes, columns):
             extracted_data[index] = {col: None for col in columns}
     return extracted_data
 
-def get_values_as_list_of_lists(df, columns, indexes):
-    # Check if all columns exist in the DataFrame
-    if not all(col in df.columns for col in columns):
-        raise ValueError("One or more columns not found in the DataFrame")
+def format_letter_dict(original_dict):
+    """
+    Formats the letter dictionary to make it more readeable.
 
-    # Check if all indexes are within the DataFrame's range
-    if not all(idx in df.index for idx in indexes):
-        raise ValueError("One or more indexes not found in the DataFrame")
+    :param original_dict: The original letter dictionary.
+    :return: A dictionary where each letter is an index and each value is the range of time.
 
-    # Retrieve values as a list of lists
-    values_list = df.loc[indexes, columns].values.tolist()
-
-    return values_list
-
-def transform_dict(original_dict):
+    Example: 
+    original_dict= {'A1_start': 12, 'A1_end': 24, 'B1_start': 27, 'B1_end': 38}
+    transformed_dict= {'A1': '[12-24]', 'B1': '[27-38]'}
+    """
     transformed_dict = {}
     for key, value in original_dict.items():
         transformed_entry = {}
@@ -262,68 +277,38 @@ def transform_dict(original_dict):
         transformed_dict[key] = transformed_entry
     return transformed_dict
 
-def add_label_to_tuples(labels, time_dict):
+def match_measurements_with_letters(df, time_dict):
     """
-    Adds a new element to each tuple in labels based on the time ranges in time_dict.
+    Adds a new column 'eurythmy_letter' to the DataFrame indicating the eurythmy letter performed at each moment.
 
-    :param labels: List of tuples, where each tuple contains [key, ..., position].
+    :param df: DataFrame containing the columns 'id_measurement' and 'initial_second'.
     :param time_dict: Dictionary with keys and time ranges.
-    :return: A new list of tuples with a new label element added.
+    :return: DataFrame with the added column 'eurythmy_letter'.
     """
-    new_labels = []
-    for label_tuple in labels:
-        key = label_tuple[0]  # First element is the key
-        position = label_tuple[-1]  # Last element is the position
-
-        # Access the corresponding time ranges
+    # Function to determine the eurythmy letter for a row
+    def determine_letter(row):
+        key = row['id_measurement']
+        position = row['initial_second']
         time_ranges = time_dict.get(key, {})
 
-        # Find which range the position falls into and create a new tuple
-        new_label_tuple = label_tuple  # Initialize with the original tuple
         for label, (start, end) in time_ranges.items():
             if start <= position <= end:
-                # Create a new tuple with the additional label
-                new_label_tuple = label_tuple + (label,)
-                break
+                return label
+        return None
 
-        new_labels.append(new_label_tuple)
+    # Apply the function to each row
+    df['eurythmy_letter'] = df.apply(determine_letter, axis=1)
 
-    return new_labels
+    return df
 
 
-def extract_seventh_element(list_of_lists):
+def add_meas_letters(feat_df):
     """
-    Extracts the 7th element from each list in a list of lists.
-    If the 7th element does not exist, -1 is appended instead.
+    Adds a new column 'eurythmy_letter' to the DataFrame.
 
-    :param list_of_lists: List of lists from which to extract the 7th element.
-    :return: List containing the 7th elements or -1.
+    :param feat_df: DataFrame containing the measurement features.
+    :return: DataFrame with the added column 'eurythmy_letter'.
     """
-    extracted_elements = []
-    for lst in list_of_lists:
-        # Append the 7th element or -1 if it doesn't exist
-        extracted_elements.append(lst[7] if len(lst) > 7 else np.nan)
-
-    return extracted_elements
-
-def return_meas_labels_by_keys(keys):
-
-    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
-    df_meas = pd.read_csv(meas_file, index_col='id_measurement')
-    columns_to_include = ['id_performance', 'datetime', 'plant', 'generation', 'num_eurythmy'] 
-    meas_labels= get_values_as_list_of_lists(df_meas, columns_to_include,  keys)
-
-    return meas_labels
-
-def return_meas_time_intervals(keys):
-
-    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
-    df_meas = pd.read_csv(meas_file, index_col='id_measurement')
-    time_intervals= get_values_as_list_of_lists(df_meas, ['eurythmy_start', 'eurythmy_end'],  keys)
-
-    return time_intervals
-
-def return_meas_letters(keys, labels):
 
     letter_columns= ['A1_start', 'A1_end', 'G1_start', 'G1_end', 'D1_start',
        'D1_end', 'A2_start', 'A2_end', 'G2_start', 'G2_end', 'D2_start',
@@ -333,12 +318,67 @@ def return_meas_letters(keys, labels):
        'O3_end', 'O4_start', 'O4_end', 'L1_start', 'L1_end', 'L2_start',
        'L2_end', 'L3_start', 'L3_end', 'L4_start', 'L4_end']
     
+    # Read eurythmy letters information
     meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
     df_meas = pd.read_csv(meas_file, index_col='id_measurement')
 
-    letter_dictionary= extract_data_by_index_and_columns(df_meas, keys, letter_columns)
-    letter_dictionary = transform_dict(letter_dictionary)
-    updated_labels= add_label_to_tuples(labels, letter_dictionary)
-    final_labels= extract_seventh_element(updated_labels)
+    # Extract and format letters data
+    indexes= feat_df['id_measurement'].tolist()
+    letter_dictionary= extract_data_by_index_and_columns(df_meas, indexes, letter_columns)
+    letter_dictionary = format_letter_dict(letter_dictionary)
+
+    # Include letter data in the df
+    new_df= match_measurements_with_letters(feat_df, letter_dictionary)
     
-    return final_labels
+    return new_df
+
+def get_targets_rq1_is_eurythmy(df):
+    """
+    RQ1: Is there any difference in the signals when someone is performing eurythmy?
+    Processes the 'num_eurythmy' column of a DataFrame.
+
+    :param df: DataFrame containing the column 'num_eurythmy'.
+    :return: A list of processed values based on the condition.
+    """
+    # Extract the values from the 'num_eurythmy' column
+    num_eurythmy_values = df['num_eurythmy'].tolist()
+
+    # Apply the operation to each value
+    targets = [1 if x > 0 else x for x in num_eurythmy_values]
+
+    return targets
+
+def get_targets_rq2_what_letter(df):
+    """
+    RQ2: Is there any difference in the signals between different eurythmy letters?
+    Process a DataFrame to filter based on 'eurythmy_letter' and create a 'target' column.
+
+    :param df: DataFrame containing the 'eurythmy_letter' column.
+    :return: A tuple containing the indexes list and the 'target' list.
+    """
+    # Filter the DataFrame and explicitly create a copy
+    filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].str.startswith(('A', 'G', 'D'))].copy()
+
+    # Create 'target' column
+    def letter_to_target(letter):
+        if letter.startswith('A'):
+            return 0
+        elif letter.startswith('G'):
+            return 1
+        elif letter.startswith('D'):
+            return 2
+        else:
+            return None
+
+    filtered_df['target'] = filtered_df['eurythmy_letter'].apply(letter_to_target)
+
+    # Convert 'target' column to a list
+    target_list = filtered_df['target'].tolist()
+
+    # Store the indexes
+    indexes = filtered_df.index.tolist()
+
+    # Ensure lengths match
+    assert len(indexes) == len(target_list), "Lengths of indexes and target list do not match."
+
+    return indexes, target_list

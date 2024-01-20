@@ -95,10 +95,8 @@ class WavDataReader:
 
         :return: A list of values, a list of keys.
         """
-        values= self.get_values
-        keys= self.get_keys
 
-        return values,keys
+        return list(self.data.values()),list(self.data.keys())
     
     def get_sample_rate(self):
         """

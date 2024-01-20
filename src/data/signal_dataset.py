@@ -1,132 +1,106 @@
 from torch.utils.data import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import data.preparation_eurythmy_data as ped
 
 class SignalDataset(Dataset):
-    def __init__(self, signals, labels, target_index: int = 0, sample_rate: int = 10000):
+    def __init__(self, signals, features, target_column=None, feature_labels=None, sample_rate: int = 10000):
         """
         Initialize the SignalDataset instance.
 
         :param signals: A list or array of signal data.
-        :param labels: A list of labels corresponding to the signals, each element could be a list of labels.
+        :param features: A DataFrame or a 2D list/array representing features corresponding to the signals.
+        :param target_column: The name of the column in 'features' to be used as the target variable. Can be None.
+        :param feature_labels: List of column names for the features DataFrame. If None, default names are assigned.
         :param sample_rate: The sample rate of the signals.
-        :param target_index: An integer representing the position of the target in the labels
         """
-        assert len(signals) == len(labels), "The length of signals and labels must be the same."
+        assert len(signals) == len(features), "The length of signals and features must be the same."
 
-        # Convert each label set to a tuple
-        formatted_labels = [tuple(label) if isinstance(label, list) else (label,) for label in labels]
+        if not isinstance(features, pd.DataFrame):
+            if feature_labels is None and isinstance(features, list) and len(features) > 0:
+                feature_labels = [f'feature_{i}' for i in range(len(features[0]))]
+            features = pd.DataFrame(features, columns=feature_labels)
+
+        # Reset the index of the DataFrame
+        features.reset_index(drop=True, inplace=True)
 
         self.signals = signals
-        self.labels = formatted_labels
+        self.features = features
         self.sample_rate = sample_rate
-        self.target_index = target_index
-        self.standardization = None
+        self.target_column = target_column
+
+
+    # Dataset methods
 
     def __len__(self):
         """
-        Return the number of samples in the dataset.
+        Return the number of items in the dataset.
         """
         return len(self.signals)
 
+
     def __getitem__(self, idx):
         """
-        Fetch the signal and its corresponding label at the specified index.
-        """
-        return self.signals[idx], self.labels[idx][self.target_index]
-    
-    # GETTERS AND SETTERS
+        Retrieve the signal and corresponding features at the specified index. If a target column is specified,
+        the target value is also returned.
 
-    def get_labels(self):
+        :param idx: Index of the item to retrieve.
+        :return: A tuple containing the signal, its corresponding features, and optionally the target value.
         """
-        Returns the labels of the dataset.
-        """
-        return self.labels
-    
-    def get_labels_by_indexes(self, indexes):
-        """
-        Retrieve labels for specified indexes.
+        signal = self.signals[idx]
+        features = self.features.iloc[idx]
 
-        :param indexes: A list of index positions for which to retrieve labels.
-        :return: A list of labels corresponding to the specified indexes.
-        """
-        # Ensure that the requested indexes are within the bounds of the labels list
-        if max(indexes, default=-1) < len(self.labels):
-            return [self.labels[idx] for idx in indexes if idx < len(self.labels)]
+        if self.target_column is not None:
+            target = features[self.target_column]
+            return signal, target
         else:
-            print("Warning: Some requested indexes are out of bounds.")
-            return [self.labels[idx] for idx in indexes if idx < len(self.labels)]
-        
+            return signal, features
 
-    def get_labels_by_columns(self, columns):
-        """
-        Retrieve labels for specified columns.
+    
+    # Getters and setters for signals
+    @property
+    def signals(self):
+        return self._signals
 
-        :param columns: A list of column positions for which to retrieve label elements.
-        :return: A list of lists, each containing the label elements for the specified columns.
-        """
-        extracted_labels = []
+    @signals.setter
+    def signals(self, value):
+        self._signals = value
 
-        # Iterate over each label
-        for label in self.labels:
-            # Extract the elements from the label based on the specified columns
-            extracted_label = [label[col] for col in columns if col < len(label)]
-            extracted_labels.append(extracted_label)
+    # Getter and Setter for features
+    @property
+    def features(self):
+        return self._features
 
-        return extracted_labels
+    @features.setter
+    def features(self, value):
+        self._features = value
 
-    def get_labels_at_index(self, index):
-        """
-        Returns a list of labels at the given index for each label tuple.
+    # Getter and Setter for target_column
+    @property
+    def target_column(self):
+        return self._target_column
 
-        :param index: The index within each label tuple to retrieve.
-        :return: A list of labels at the specified index.
-        """
-        if not all(isinstance(label, tuple) and len(label) > index for label in self.labels):
-            raise IndexError("Index out of range for some label tuples.")
+    @target_column.setter
+    def target_column(self, value):
+        self._target_column = value
 
-        return [label[index] for label in self.labels]
+    # Getter and Setter for sample_rate
+    @property
+    def sample_rate(self):
+        return self._sample_rate
 
-    def get_signals(self):
-        """
-        Returns the signals of the dataset.
-        """
-        return self.signals
+    @sample_rate.setter
+    def sample_rate(self, value):
+        self._sample_rate = value
 
-    def get_data(self):
-        """
-        Returns all the signal-label pairs in the dataset.
-        """
-        return self.signals, self.labels
+    # Getter for indexes
+    @property
+    def indexes(self):
+        return self.features.index.tolist()
 
-    def get_datapoint_by_index(self, idx):
-        """
-        Returns the signal-label pair at the specified index.
-        """
-        if idx < len(self.signals):
-            return self.signals[idx], self.labels[idx]
-        else:
-            return None
-        
-    def set_index_target(self, idx: int):
-        """
-        Sets the index of the labels corresponding to target
-        """
-        self.target_index= idx
-
-    def get_targets(self):
-        """
-        Retrieve the target labels based on the target_index.
-
-        :return: A list of target labels.
-        """
-        return [label[self.target_index] for label in self.labels]
-
-
-    # STANDARDIZATION METHODS
-        
+    # Standardization methods        
     @staticmethod
     def standardize_wave_peak(waveform):
         """
@@ -181,184 +155,107 @@ class SignalDataset(Dataset):
         standardized_waveform = (waveform - min_val) / (max_val - min_val)
 
         return standardized_waveform
-    
+
     def standardize_signals(self, method):
         """
         Applies the specified standardization technique to all signals in the dataset.
 
         :param method: The standardization method to use ('peak', 'zscore', 'min_max').
         """
-        standardize_func = None
-        if method == 'peak':
-            standardize_func = self.standardize_wave_peak
-        elif method == 'zscore':
-            standardize_func = self.standardize_wave_zscore
-        elif method == 'min_max':
-            standardize_func = self.standardize_wave_min_max
-        else:
+        standardization_methods = {
+            'peak': self.standardize_wave_peak,
+            'zscore': self.standardize_wave_zscore,
+            'min_max': self.standardize_wave_min_max
+        }
+
+        if method not in standardization_methods:
             raise ValueError("Invalid standardization method. Choose 'peak', 'zscore', or 'min_max'.")
+
+        # Get the chosen standardization function
+        standardize_func = standardization_methods[method]
 
         # Apply the chosen standardization function to each signal
         self.signals = [standardize_func(signal) for signal in self.signals]
-
-        # Update the standardization attribute
         self.standardization = method
 
-    # MANIPULATE DATASET
+    # Visualization
+    def display_dataset(self):
+        """
+        Displays each signal in the dataset with its corresponding features.
+        """
+        for i, (signal, features_row) in enumerate(zip(self.signals, self.features.iterrows())):
+            plt.figure(figsize=(10, 4))
+            time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
+            plt.plot(time_axis, signal)
+            
+            # Create a title string from the features
+            feature_info = ', '.join([f'{col}: {val}' for col, val in zip(self.features.columns, features_row[1])])
+            plt.title(f'Features: {feature_info}')
+            plt.xlabel('Time (seconds)')
+            plt.ylabel('Amplitude')
+            plt.show()
 
+    # Manipulation
     def segment_signals(self, segment_duration):
         """
-        Segments each signal into smaller segments of a specified duration.
+        Segments each signal into smaller segments of a specified duration and updates the corresponding features,
+        including the start of each segment as a new feature. Resets the index of the features DataFrame.
 
         :param segment_duration: Duration of each segment in seconds.
         """
         new_signals = []
-        new_labels = []
+        new_features = []
         num_samples_per_segment = int(self.sample_rate * segment_duration)
 
-        for signal, label in zip(self.signals, self.labels):
+        for idx, (signal, features_row) in enumerate(zip(self.signals, self.features.iterrows())):
             for start in range(0, len(signal), num_samples_per_segment):
                 end = start + num_samples_per_segment
                 if end <= len(signal):
                     segment = signal[start:end]
                     new_signals.append(segment)
                     
-                    # Create a new tuple by adding the start second of the segment
-                    segment_label = label + (start / self.sample_rate,)  # Concatenate tuples
-                    new_labels.append(segment_label)
+                    # Include the corresponding features for each segment
+                    segment_features = features_row[1].copy()
+                    initial_second = start / self.sample_rate
+                    segment_features['initial_second'] = initial_second
+                    new_features.append(segment_features)
 
+        # Update signals and create a new DataFrame with reset index
         self.signals = new_signals
-        self.labels = new_labels
+        self.features = pd.DataFrame(new_features).reset_index(drop=True)
 
-    def display_dataset(self):
+    def add_features(self, new_features, feature_names=None):
         """
-        Displays each signal in the dataset with its corresponding labels.
+        Add new features to the dataset.
+
+        :param new_features: A 2D list or array of new features to add to the dataset, 
+                            where each inner list/array represents the features for one signal.
+        :param feature_names: A list of names for the new features. If None, default names are assigned.
         """
-        for i, (signal, label) in enumerate(zip(self.signals, self.labels)):
-            plt.figure()
-            time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
-            plt.plot(time_axis, signal)
-            plt.title(f'Labels: {label}')
-            plt.xlabel('Time (seconds)')
-            plt.ylabel('Amplitude')
-            plt.show()
+        assert len(new_features) == len(self.features), "The length of new_features must match the existing features."
 
-    def display_signal(self, index):
-        """
-        Displays a single signal from the dataset.
+        # Convert new_features to a DataFrame if it's not already one
+        if not isinstance(new_features, pd.DataFrame):
+            if feature_names is None:
+                feature_names = [f'new_feature_{i}' for i in range(len(new_features[0]))]
+            new_features = pd.DataFrame(new_features, columns=feature_names)
 
-        :param index: The index of the signal to display.
-        """
-        if index < len(self.signals):
-            signal = self.signals[index]
-            label = self.labels[index]
-            plt.figure()
-            time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
-            plt.plot(time_axis, signal)
-            plt.title(f'Labels: {label}')
-            plt.xlabel('Time (seconds)')
-            plt.ylabel('Amplitude')
-            plt.show()
-        else:
-            print(f"Index {index} is out of bounds for the dataset.")
-
-    def reduce_signals_given_intervals(self, time_intervals):
-        """
-        Trims the signals in the dataset based on the provided time intervals.
-
-        :param time_intervals: A list of tuples, each containing start and end times in seconds.
-        """
-        assert len(time_intervals) == len(self.signals), "Time intervals must match the number of signals."
-
-        trimmed_signals = []
-        for signal, (start_time, end_time) in zip(self.signals, time_intervals):
-            start_sample = int(start_time * self.sample_rate)
-            end_sample = int(end_time * self.sample_rate)
-            trimmed_signal = signal[start_sample:end_sample]
-            trimmed_signals.append(trimmed_signal)
-
-        self.signals = trimmed_signals
-
-    def add_labels(self, new_labels):
-        """
-        Add labels to the dataset.
-
-        :param new_labels: A list of labels to add to the dataset. Each element can be a single value or a list.
-        """
-        assert len(new_labels) == len(self.labels), "The length of new_labels must match the existing labels."
-
-        updated_labels = []
-        for i in range(len(self.labels)):
-            # Convert current label tuple to a list
-            current_label_list = list(self.labels[i])
-
-            # Check if new_labels[i] is a list or a single value
-            if isinstance(new_labels[i], list):
-                # Extend the list with the elements of new_labels[i]
-                current_label_list.extend(new_labels[i])
-            elif new_labels[i] is not None:  # Check for None or nan (float('nan'))
-                # Append the single value of new_labels[i]
-                current_label_list.append(new_labels[i])
-
-            # Convert back to tuple and add to the updated labels list
-            updated_labels.append(tuple(current_label_list))
-
-        self.labels = updated_labels
-
-    def reset_labels(self):
-        """
-        Resets the labels to an empty tuple for each signal in the dataset.
-        """
-        if len(self.labels) == len(self.signals):
-            self.labels = [tuple() for _ in range(len(self.signals))]
-        else:
-            print("Warning: The number of labels does not match the number of signals. Labels were not reset.")
-
-    def remove_signals_with_nan_labels(self):
-        """
-        Removes signals that have any label equal to np.nan.
-        """
-        # Create a new list for signals and labels without nan labels
-        filtered_signals = []
-        filtered_labels = []
-
-        # Iterate over each signal and its corresponding label
-        for signal, label in zip(self.signals, self.labels):
-            # Check if any element in the label tuple is np.nan
-            if not any(np.isnan(element) if isinstance(element, float) else False for element in label):
-                filtered_signals.append(signal)
-                filtered_labels.append(label)
-
-        # Update the signals and labels with the filtered lists
-        self.signals = filtered_signals
-        self.labels = filtered_labels
+        # Add new features to the existing DataFrame
+        self.features = pd.concat([self.features, new_features], axis=1)
 
     def remove_constant_signals(self):
         """
-        Remove constant signals and their corresponding labels.
+        Remove constant signals and their corresponding features.
         """
         non_constant_signals = []
-        non_constant_labels = []
+        non_constant_features = []
 
-        for signal, label in zip(self.signals, self.labels):
+        for signal, features_row in zip(self.signals, self.features.iterrows()):
             if len(set(signal)) > 1:  # Check if the signal is non-constant
                 non_constant_signals.append(signal)
-                non_constant_labels.append(label)
+                non_constant_features.append(features_row[1])  # Append the row data
 
         self.signals = non_constant_signals
-        self.labels = non_constant_labels
-
-    def process_dataset_adding_eurythmy_labels(self):
-
-        #Process Dataset adding Measurement Labels
-        self.standardize_signals("zscore") 
-        keys= self.get_labels_at_index(0)
-        meas_labels= ped.return_meas_labels_by_keys(keys)
-        self.add_labels(meas_labels)
-        self.segment_signals(segment_duration=1)
-        self.remove_constant_signals()
-        labels= self.get_labels()
-        letter_labels= ped.return_meas_letters(keys, labels)
-        self.add_labels(letter_labels)
+        self.features = pd.DataFrame(non_constant_features, columns=self.features.columns)
 
 
