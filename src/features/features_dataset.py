@@ -7,7 +7,7 @@ import numpy as np
 
 class FeaturesDataset(Dataset):
 
-    def __init__(self, features: list, targets: list, feature_labels: list = None):
+    def __init__(self, features: list, targets: list = None, feature_labels: list = None):
         """
         Initialization method for the FeaturesDataset.
 
@@ -18,7 +18,7 @@ class FeaturesDataset(Dataset):
         The features are stored in a pandas DataFrame for efficient data manipulation,
         while the targets are stored as a separate list.
         """
-        assert len(features) == len(targets), "Features and targets must have the same length"
+        #assert len(features) == len(targets), "Features and targets must have the same length"
         self.features = pd.DataFrame(features, columns=feature_labels)
         self.targets = targets
         self.processed = False
@@ -47,29 +47,8 @@ class FeaturesDataset(Dataset):
 
         return feature_tensor, target_tensor
 
-    def save_to_csv(self, filepath):
-        """
-        Saves the dataset to a CSV file.
+    # GETTERS AND SETTERS
 
-        :param filepath: The path to the file where the dataset will be saved.
-        """
-        df = self.features.copy()
-        df['target'] = self.targets
-        df.to_csv(filepath, index=False)
-
-    @classmethod
-    def load_from_csv(cls, filepath, feature_labels=None):
-        """
-        Loads a dataset from a CSV file.
-
-        :param filepath: The path to the CSV file to load the dataset from.
-        :param feature_labels: Optional list of feature labels to apply to the DataFrame.
-        :return: An instance of FeaturesDataset with data loaded from the CSV file.
-        """
-        df = pd.read_csv(filepath)
-        targets = df['target'].tolist()
-        features = df.drop('target', axis=1)
-        return cls(features.values.tolist(), targets, feature_labels=feature_labels if feature_labels else features.columns.tolist())
 
     def get_targets(self):
         """
@@ -108,7 +87,75 @@ class FeaturesDataset(Dataset):
         Returns the feature labels (column names) of the features DataFrame.
         """
         return self.features.columns.tolist()
+        
+    def get_features_dataframe(self):
+        """
+        Returns the features as a pandas DataFrame.
+        """
+        return self.features
 
+    def head(self, n=5):
+        """
+        Displays the first n rows of the features DataFrame.
+
+        :param n: The number of rows to display. Defaults to 5.
+        """
+        return self.features.head(n)
+    
+    def shape(self):
+        """
+        Returns the shape of the features DataFrame.
+        """
+        return self.features.shape
+    
+    # HANDLE DATA
+
+    def drop_columns(self, columns_to_drop: list):
+        """
+        Drops specified columns from the features DataFrame.
+
+        :param columns_to_drop: A list of column names to be dropped.
+        """
+        self.features = self.features.drop(columns=columns_to_drop, errors='ignore')
+
+
+    def drop_rows(self, row_indices: list):
+        """
+        Drops rows from the features DataFrame and the corresponding elements from the targets list.
+
+        :param row_indices: A list of indices of rows to be dropped.
+        """
+        # Drop rows from the features DataFrame
+        self.features = self.features.drop(row_indices, errors='ignore').reset_index(drop=True)
+
+        # Drop the corresponding targets
+        self.targets = [target for idx, target in enumerate(self.targets) if idx not in row_indices]
+
+    def split_dataset_in_loaders(self, test_size=0.3, val_size=0.5, random_state=42, batch_size = 32):
+        """
+        Splits the dataset into training, validation, and testing loaders.
+
+        :param test_size: Proportion of the dataset to include in the test split.
+        :param val_size: Proportion of the test set to include in the validation set.
+        :param random_state: Random state for reproducibility.
+        :return: A tuple (train_dataset, val_dataset, test_dataset).
+        """
+        dataset_size = len(self)
+        indices = list(range(dataset_size))
+        train_indices, test_indices = train_test_split(indices, test_size=test_size, random_state=random_state)
+        val_indices, test_indices = train_test_split(test_indices, test_size=val_size, random_state=random_state)
+
+        train_dataset = Subset(self, train_indices)
+        val_dataset = Subset(self, val_indices)
+        test_dataset = Subset(self, test_indices)
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+        return train_loader, val_loader, test_loader
+
+    # PROCESS DATA
 
     def remove_nan_columns(self):
         """
@@ -139,12 +186,6 @@ class FeaturesDataset(Dataset):
             print('The Features were properly normalized using \'minmax\' method.')
         else:
             raise ValueError("Unsupported normalization method. Choose 'zscore' or 'minmax'.")
-        
-    def get_features_dataframe(self):
-        """
-        Returns the features as a pandas DataFrame.
-        """
-        return self.features
 
     def treat_outliers(self, iqr_multiplier=1.5):
         """
@@ -160,12 +201,20 @@ class FeaturesDataset(Dataset):
         lower_bound = Q1 - iqr_multiplier * IQR
         upper_bound = Q3 + iqr_multiplier * IQR
 
-        # Replace outliers with the nearest boundary value
         for feature in self.features.columns:
+            # Count the number of outliers for the current feature
+            outliers_count = ((self.features[feature] < lower_bound[feature]) | 
+                            (self.features[feature] > upper_bound[feature])).sum()
+            total_count = len(self.features[feature])
+            outlier_percentage = (outliers_count / total_count) * 100
+
+            # Replace outliers with the nearest boundary value
             self.features[feature] = self.features[feature].mask(
                 self.features[feature] < lower_bound[feature], lower_bound[feature])
             self.features[feature] = self.features[feature].mask(
                 self.features[feature] > upper_bound[feature], upper_bound[feature])
+
+            print(f"Feature '{feature}': {outlier_percentage:.2f}% outliers treated.")
 
         print(f"Outliers have been treated based on the {iqr_multiplier} * IQR criterion.")
 
@@ -223,91 +272,43 @@ class FeaturesDataset(Dataset):
 
         print(f"Reduced features from {initial_number_columns} to {len(self.features.columns)}.")
 
-    def head(self, n=5):
-        """
-        Displays the first n rows of the features DataFrame.
-
-        :param n: The number of rows to display. Defaults to 5.
-        """
-        return self.features.head(n)
-    
-    def shape(self):
-        """
-        Returns the shape of the features DataFrame.
-        """
-        return self.features.shape
-
-
-    def drop_columns(self, columns_to_drop: list):
-        """
-        Drops specified columns from the features DataFrame.
-
-        :param columns_to_drop: A list of column names to be dropped.
-        """
-        self.features = self.features.drop(columns=columns_to_drop, errors='ignore')
-
-
-    def drop_rows(self, row_indices: list):
-        """
-        Drops rows from the features DataFrame and the corresponding elements from the targets list.
-
-        :param row_indices: A list of indices of rows to be dropped.
-        """
-        # Drop rows from the features DataFrame
-        self.features = self.features.drop(row_indices, errors='ignore').reset_index(drop=True)
-
-        # Drop the corresponding targets
-        self.targets = [target for idx, target in enumerate(self.targets) if idx not in row_indices]
-
-    def split_dataset_in_loaders(self, test_size=0.3, val_size=0.5, random_state=42, batch_size = 32):
-        """
-        Splits the dataset into training, validation, and testing loaders.
-
-        :param test_size: Proportion of the dataset to include in the test split.
-        :param val_size: Proportion of the test set to include in the validation set.
-        :param random_state: Random state for reproducibility.
-        :return: A tuple (train_dataset, val_dataset, test_dataset).
-        """
-        dataset_size = len(self)
-        indices = list(range(dataset_size))
-        train_indices, test_indices = train_test_split(indices, test_size=test_size, random_state=random_state)
-        val_indices, test_indices = train_test_split(test_indices, test_size=val_size, random_state=random_state)
-
-        train_dataset = Subset(self, train_indices)
-        val_dataset = Subset(self, val_indices)
-        test_dataset = Subset(self, test_indices)
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-
-        return train_loader, val_loader, test_loader
-
-    def process_features(self, normalize_method='zscore', iqr_multiplier=1.5, corr_threshold=0.8):
+    def process_features(self, corr_threshold=0.8):
         """
         Applies a sequence of preprocessing steps to the feature DataFrame.
 
-        :param targets: A list of class values for the ANOVA/t-test in reduce_features.
-        :param normalize_method: The method of normalization ('zscore' or 'minmax').
-        :param iqr_multiplier: The multiplier for IQR in treat_outliers.
         :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
         """
         # Remove specific columns
         columns=['duration_seconds', 'flatness_ratio_10000','flatness_ratio_5000', 'flatness_ratio_1000', 'flatness_ratio_500','flatness_ratio_100',]
         self.drop_columns(columns_to_drop=columns)
 
-        # Remove columns with NaN values
-        self.remove_nan_columns()
-
-        # Normalize features
-        self.normalize_features(method=normalize_method)
-
-        # Treat outliers
-        self.treat_outliers(iqr_multiplier=iqr_multiplier)
-
         # Reduce features based on statistical tests and correlation
         self.reduce_features(self.targets, corr_threshold=corr_threshold)
 
         self.processed= True
 
-        print("Preprocessing complete. Features have been cleaned, normalized, outliers treated, and reduced.")
+    # SAVE/LOAD
+
+    def save_to_csv(self, filepath):
+        """
+        Saves the dataset to a CSV file.
+
+        :param filepath: The path to the file where the dataset will be saved.
+        """
+        df = self.features.copy()
+        df['target'] = self.targets
+        df.to_csv(filepath, index=False)
+
+    @classmethod
+    def load_from_csv(cls, filepath, feature_labels=None):
+        """
+        Loads a dataset from a CSV file.
+
+        :param filepath: The path to the CSV file to load the dataset from.
+        :param feature_labels: Optional list of feature labels to apply to the DataFrame.
+        :return: An instance of FeaturesDataset with data loaded from the CSV file.
+        """
+        df = pd.read_csv(filepath)
+        targets = df['target'].tolist()
+        features = df.drop('target', axis=1)
+        return cls(features.values.tolist(), targets, feature_labels=feature_labels if feature_labels else features.columns.tolist())

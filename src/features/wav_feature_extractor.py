@@ -208,15 +208,6 @@ class WavFeatureExtractor:
             feature_values.extend([np.nan, np.nan])
             feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
 
-        # Hurst parameters
-        try:
-            hu = self.compute_Hc(waveform_data)
-            feature_values.extend([hu[0], hu[1]])
-            feature_labels.extend(['hurst', 'hurst_r2'])
-        except Exception:
-            feature_values.extend([np.nan, np.nan])
-            feature_labels.extend(['hurst', 'hurst_r2'])
-
         # Standard statistical features
         statistical_features = [
             ('mean', np.mean), ('variance', np.var), ('standard_deviation', np.std), 
