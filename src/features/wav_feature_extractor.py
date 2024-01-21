@@ -3,14 +3,19 @@ import numpy as np
 from scipy import stats
 
 class WavFeatureExtractor:
-    def __init__(self, sample_rate: int = 10000):
+    def __init__(self, sample_rate: int = 10000, mfccs: bool = True, temporal: bool = True, statistical: bool = True):
         """
-        Initialize the AudioFeatureExtractor with default parameters.  
+        Initialize the WavFeatureExtractor with default parameters.
 
         :param sample_rate: Sample rate of the audio.
+        :param mfccs: Whether to extract MFCC features.
+        :param temporal: Whether to extract temporal features.
+        :param statistical: Whether to extract statistical features.
         """
         self.sample_rate = sample_rate
-        self.standardization = 'None' 
+        self.mfccs = mfccs
+        self.temporal = temporal
+        self.statistical = statistical
 
     @staticmethod
     def add_feature(name, func, waveform_data, feature_values, feature_labels):
@@ -331,40 +336,38 @@ class WavFeatureExtractor:
 
         return mfccs_features, feature_labels
 
+    def extract_features_waveform(self, waveform):
+        """
+        Extracts all features using the specified feature extraction methods and
+        combines them into a single feature list along with their labels.
 
-    def extract_features_waveform(self, waveform, mfccs= True, temporal= True, statistical= True):
-            """
-            Extracts all features using the specified feature extraction methods and
-            combines them into a single feature list along with their labels.
+        :param waveform: A numpy array representing the audio waveform.
+        :return: Two lists - one containing all the feature values and another containing all the corresponding feature labels.
+        """
+        feature_values = []
+        feature_labels = []
+        
+        if self.mfccs:
+            # Extract MFCC features
+            mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
+            feature_values.extend(mfcc_values)
+            feature_labels.extend(mfcc_labels)
 
-            :param waveform: A numpy array representing the audio waveform.
-            :return: Two lists - one containing all the feature values and another containing all the corresponding feature labels.
-            """
-            feature_values = []
-            feature_labels = []
-            
-            if mfccs:
-                # Extract MFCC features
-                mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
-                feature_values.extend(mfcc_values)
-                feature_labels.extend(mfcc_labels)
+        if self.temporal:
+            # Extract temporal features
+            temporal_values, temporal_labels = self.extract_temporal_features(waveform)
+            feature_values.extend(temporal_values)
+            feature_labels.extend(temporal_labels)
 
-            if temporal:
-                # Extract temporal features
-                temporal_values, temporal_labels = self.extract_temporal_features(waveform)
-                feature_values.extend(temporal_values)
-                feature_labels.extend(temporal_labels)
+        if self.statistical:
+            # Extract statistical features
+            statistical_values, statistical_labels = self.extract_statistical_features(waveform)
+            feature_values.extend(statistical_values)
+            feature_labels.extend(statistical_labels)
 
-            if statistical:
-                # Extract statistical features
-                statistical_values, statistical_labels = self.extract_statistical_features(waveform)
-                feature_values.extend(statistical_values)
-                feature_labels.extend(statistical_labels)
+        return feature_values, feature_labels
 
-            return feature_values, feature_labels
-    
-
-    def extract_features_multiple_waveforms(self, waveforms, mfccs=True, temporal=True, statistical=True):
+    def extract_features_multiple_waveforms(self, waveforms):
         """
         Extracts features from a list of waveforms using specified feature extraction methods.
 
@@ -378,7 +381,7 @@ class WavFeatureExtractor:
         all_feature_values = []
 
         for waveform in waveforms:
-            feature_values, feature_labels = self.extract_features_waveform(waveform, mfccs, temporal, statistical)
+            feature_values, feature_labels = self.extract_features_waveform(waveform)
             all_feature_values.append(feature_values)
 
         return all_feature_values, feature_labels

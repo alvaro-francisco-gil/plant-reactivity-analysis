@@ -340,7 +340,7 @@ def get_targets_rq1_is_eurythmy(df):
 
     :param df: DataFrame containing the columns 'num_eurythmy' and 'eurythmy_letter'.
     :return: A tuple containing the indexes list and the targets list.
-    """
+    """S
     # Filter the DataFrame where 'num_eurythmy' is not 0 and 'eurythmy_letter' is not None
     filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].notnull()]
 
