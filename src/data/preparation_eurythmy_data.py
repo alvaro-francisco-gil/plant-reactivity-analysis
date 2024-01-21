@@ -332,26 +332,31 @@ def add_meas_letters(feat_df):
     
     return new_df
 
+@staticmethod
 def get_targets_rq1_is_eurythmy(df):
     """
     RQ1: Is there any difference in the signals when someone is performing eurythmy?
-    Processes the 'num_eurythmy' column of a DataFrame.
+    Filters the DataFrame based on 'num_eurythmy' and 'eurythmy_letter', then processes the 'num_eurythmy' column.
 
-    :param df: DataFrame containing the column 'num_eurythmy'.
-    :return: A list of processed values based on the condition.
+    :param df: DataFrame containing the columns 'num_eurythmy' and 'eurythmy_letter'.
+    :return: A tuple containing the indexes list and the targets list.
     """
-    # Extract the values from the 'num_eurythmy' column
-    num_eurythmy_values = df['num_eurythmy'].tolist()
+    # Filter the DataFrame where 'num_eurythmy' is not 0 and 'eurythmy_letter' is not None
+    filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].notnull()]
 
-    # Apply the operation to each value
-    targets = [1 if x > 0 else x for x in num_eurythmy_values]
+    # Store the indexes of the filtered rows
+    indexes = filtered_df.index.tolist()
 
-    return targets
+    # Apply the operation to generate targets
+    targets = [1 if x > 0 else 0 for x in filtered_df['num_eurythmy']]
 
+    return indexes, targets
+
+@staticmethod
 def get_targets_rq2_what_letter(df):
     """
     RQ2: Is there any difference in the signals between different eurythmy letters?
-    Process a DataFrame to filter based on 'eurythmy_letter' and create a 'target' column.
+    Process a DataFrame to filter based on 'eurythmy_letter' and create a list of targets.
 
     :param df: DataFrame containing the 'eurythmy_letter' column.
     :return: A tuple containing the indexes list and the 'target' list.
@@ -359,26 +364,88 @@ def get_targets_rq2_what_letter(df):
     # Filter the DataFrame and explicitly create a copy
     filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].str.startswith(('A', 'G', 'D'))].copy()
 
-    # Create 'target' column
-    def letter_to_target(letter):
+    # Determine the target for each row based on 'eurythmy_letter'
+    target_list = []
+    for letter in filtered_df['eurythmy_letter']:
         if letter.startswith('A'):
-            return 0
+            target_list.append(0)
         elif letter.startswith('G'):
-            return 1
+            target_list.append(1)
         elif letter.startswith('D'):
-            return 2
+            target_list.append(2)
         else:
-            return None
-
-    filtered_df['target'] = filtered_df['eurythmy_letter'].apply(letter_to_target)
-
-    # Convert 'target' column to a list
-    target_list = filtered_df['target'].tolist()
+            target_list.append(None)
 
     # Store the indexes
     indexes = filtered_df.index.tolist()
 
-    # Ensure lengths match
-    assert len(indexes) == len(target_list), "Lengths of indexes and target list do not match."
-
     return indexes, target_list
+
+@staticmethod
+def get_targets_rq3_eurythmy_habituation(df):
+    """
+    Assigns classes based on 'num_eurythmy' and returns indexes and classes.
+
+    :param df: DataFrame containing the 'num_eurythmy' column.
+    :return: A tuple containing the indexes list and the classes list.
+    """
+    # Filter out rows where 'num_eurythmy' is 0 and 'eurythmy_letter' is not None
+    filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].notnull()]
+
+    # Store the indexes of the filtered rows
+    indexes = filtered_df.index.tolist()
+
+    # Assign classes based on 'num_eurythmy'
+    classes = []
+    for num in filtered_df['num_eurythmy']:
+        if num in [1, 2]:
+            classes.append(0)
+        elif num in [3, 4]:
+            classes.append(1)
+        elif num in [5, 6]:
+            classes.append(2)
+        elif num in [7, 8]:
+            classes.append(3)
+        else:
+            classes.append(None)
+
+    return indexes, classes
+
+@staticmethod
+def get_targets_rq4_eurythmy_performance_habituation(df):
+    """
+    Extracts the second character of 'eurythmy_letter' and returns indexes and the characters list.
+    Filters out rows where 'num_eurythmy' is 0 or 'eurythmy_letter' is None.
+
+    :param df: DataFrame containing the 'eurythmy_letter' and 'num_eurythmy' columns.
+    :return: A tuple containing the indexes list and the list of second characters.
+    """
+    # Filter out rows where 'num_eurythmy' is 0 or 'eurythmy_letter' is None
+    filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].notnull()]
+
+    # Store the indexes of the filtered rows
+    indexes = filtered_df.index.tolist()
+
+    # Extract the second character of 'eurythmy_letter'
+    classes = [letter[1] if len(letter) > 1 else None for letter in filtered_df['eurythmy_letter']]
+
+    return indexes, classes
+
+def get_indexes_and_targets_by_rq(rq_number, df):
+    """
+    Delegates to one of the four functions based on the RQ number.
+
+    :param rq_number: The research question number (1, 2, 3, or 4).
+    :param df: DataFrame to process.
+    :return: A tuple containing the indexes list and the targets/classes/characters list.
+    """
+    if rq_number == 1:
+        return get_targets_rq1_is_eurythmy(df)
+    elif rq_number == 2:
+        return get_targets_rq2_what_letter(df)
+    elif rq_number == 3:
+        return get_targets_rq3_eurythmy_habituation(df)
+    elif rq_number == 4:
+        return get_targets_rq4_eurythmy_performance_habituation(df)
+    else:
+        raise ValueError("Invalid RQ number. Please provide a number between 1 and 4.")
