@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from scipy import stats
 import numpy as np
 import pickle
+import copy
 
 from data.signal_dataset import SignalDataset
 from features.wav_feature_extractor import WavFeatureExtractor
@@ -25,6 +26,9 @@ class FeaturesDataset(Dataset):
         # Construct DataFrame for variable features
         variable_features_df = pd.DataFrame(variable_features, columns=variable_columns)
 
+        # Resetting the index of the features attribute of signal_dataset in place
+        signal_dataset.features.reset_index(drop=True, inplace=True)
+
         # Concatenate variable features with features from SignalDataset
         self.features = pd.concat([signal_dataset.features, variable_features_df], axis=1)
 
@@ -35,12 +39,11 @@ class FeaturesDataset(Dataset):
         self.variable_columns = variable_columns
 
         # Inherit the target column from SignalDataset only if it's not None
-        if signal_dataset.target_column is not None:
-            self.target_column = signal_dataset.target_column
+        self.target_column = signal_dataset.target_column if signal_dataset.target_column is not None else None
 
         # Inherit the standardization method of the signal
-        if signal_dataset.standardization is not None:
-            self.signal_standardization= signal_dataset.standardization
+        self.standardization = signal_dataset.standardization if signal_dataset.standardization is not None else None
+
 
     # Dataset heritage
     def __len__(self):
@@ -100,12 +103,12 @@ class FeaturesDataset(Dataset):
 
     @property
     def target_column(self):
-        return self._target_column
+        return self.target_column
 
     @target_column.setter
     def target_column(self, value):
         assert isinstance(value, str), "Target column must be a string."
-        self._target_column = value
+        self.target_column = value
 
     
     # Data Handling
@@ -164,16 +167,37 @@ class FeaturesDataset(Dataset):
         else:
             print("No rows with NaN values found.")
 
+    def keep_only_specified_variable_columns(self, columns_to_keep):
+        """
+        Updates the dataset to keep only the specified variable columns by dropping others.
+
+        :param columns_to_keep: List of variable column names to be kept.
+        """
+        # Ensure that all columns to keep are in the current variable columns
+        assert all(column in self.variable_columns for column in columns_to_keep), "All columns to keep must be in the current variable columns."
+
+        # Determine the variable columns that need to be dropped
+        columns_to_drop = [col for col in self.variable_columns if col not in columns_to_keep]
+
+        # Update the variable columns list
+        self.variable_columns = columns_to_keep
+
+        # Drop the unwanted columns from the features DataFrame
+        self.features.drop(columns=columns_to_drop, inplace=True)
+
     # Data processing
     def normalize_features(self, method='zscore'):
         """
-        Normalizes the variable features in the dataset.
+        Normalizes the variable features in the dataset and returns normalization parameters.
 
         :param method: The method of normalization. Supported methods include 'zscore' for z-score normalization
                        and 'minmax' for min-max normalization.
+        :return: A dictionary containing the normalization parameters used.
         """
         # Work only with variable columns that are numeric
         variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns]
+
+        normalization_params = {}
 
         if method == 'zscore':
             # Z-score normalization
@@ -182,14 +206,46 @@ class FeaturesDataset(Dataset):
             std.replace(0, 1, inplace=True)  # Replace 0 std with 1 to avoid division by zero
             self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - mean) / std
             print("Variable features were properly normalized using 'zscore' method.")
+
+            normalization_params = {'mean': mean, 'std': std}
         elif method == 'minmax':
             # Min-max normalization
             min_val = self.features[variable_numeric_cols].min()
             max_val = self.features[variable_numeric_cols].max()
             self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (max_val - min_val)
             print("Variable features were properly normalized using 'minmax' method.")
+
+            normalization_params = {'min': min_val, 'max': max_val}
         else:
             raise ValueError("Unsupported normalization method. Choose 'zscore' or 'minmax'.")
+
+        return normalization_params
+
+    def apply_normalization(self, normalization_params):
+        """
+        Applies normalization to the variable features using provided normalization parameters.
+
+        :param normalization_params: A dictionary containing the normalization parameters.
+                                     It should have keys 'mean' and 'std' for 'zscore' method,
+                                     or 'min' and 'max' for 'minmax' method.
+        """
+        # Work only with variable columns that are numeric
+        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns]
+
+        if 'mean' in normalization_params and 'std' in normalization_params:
+            # Apply z-score normalization
+            mean = normalization_params['mean']
+            std = normalization_params['std']
+            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - mean) / std
+            print("Applied z-score normalization.")
+        elif 'min' in normalization_params and 'max' in normalization_params:
+            # Apply min-max normalization
+            min_val = normalization_params['min']
+            max_val = normalization_params['max']
+            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (max_val - min_val)
+            print("Applied min-max normalization.")
+        else:
+            raise ValueError("Invalid normalization parameters. Please provide 'mean' and 'std' for z-score, or 'min' and 'max' for min-max.")
         
     def treat_outliers(self, iqr_multiplier=1.5):
         """
@@ -230,101 +286,83 @@ class FeaturesDataset(Dataset):
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
     def reduce_features(self, targets, corr_threshold=0.8):
-        """
-        Reduces features in self.variable_columns based on t-test/ANOVA and correlation matrix.
-
-        :param targets: A list of class values corresponding to the targets.
-        :param corr_threshold: Threshold for feature correlation. Features with correlation above this threshold
-                               will be considered for removal based on their p-values.
-        """
         assert len(targets) == len(self.features), "Length of targets must match the number of samples."
         assert all(isinstance(target, (int, float)) for target in targets), "Targets must be numeric."
 
-        # Work only with variable columns
         variable_cols = [col for col in self.variable_columns if col in self.features.columns]
 
-        # Perform t-test or ANOVA and store p-values
         p_values = {}
         num_classes = len(set(targets))
         for feature in variable_cols:
             if num_classes == 2:
-                # Perform t-test for binary classification
                 p_value = stats.ttest_ind(
                     self.features[feature][np.array(targets) == 0],
                     self.features[feature][np.array(targets) == 1]
                 ).pvalue
             else:
-                # Perform ANOVA for multi-class classification
                 groups = [self.features[feature][np.array(targets) == val] for val in set(targets)]
-                p_value = stats.f_oneway(*groups).pvalue
+                if len(groups) > 1:
+                    p_value = stats.f_oneway(*groups).pvalue
+                else:
+                    p_value = float('inf')  # Assign a high p-value to effectively skip this feature
             p_values[feature] = p_value
 
-        # Construct correlation matrix for variable columns only
         corr_matrix = self.features[variable_cols].corr().abs()
 
-        # Iteratively remove features based on correlation and p-values
         while True:
             correlated_pairs = np.where((corr_matrix > corr_threshold) & (corr_matrix < 1))
             if not any(correlated_pairs[0]):
-                break  # Exit if no highly correlated pairs are left
+                break
 
             removal_candidates = set()
             for idx1, idx2 in zip(*correlated_pairs):
                 feature1, feature2 = variable_cols[idx1], variable_cols[idx2]
 
-                # Keep the feature with the lower p-value (higher statistical significance)
-                if p_values[feature1] < p_values[feature2]:
+                # Check if both features exist in p_values to avoid KeyError
+                if p_values.get(feature1, float('inf')) < p_values.get(feature2, float('inf')):
                     removal_candidates.add(feature2)
                 else:
                     removal_candidates.add(feature1)
 
-            # Update the DataFrame, variable columns, and correlation matrix
             initial_variable_columns_count = len(variable_cols)
             self.features.drop(columns=list(removal_candidates), inplace=True)
             variable_cols = [col for col in variable_cols if col not in removal_candidates]
             corr_matrix = self.features[variable_cols].corr().abs()
 
         print(f"Reduced variable features from {initial_variable_columns_count} to {len(variable_cols)}.")
-        self.variable_columns = variable_cols  # Update the variable_columns attribute
+        self.variable_columns = variable_cols
 
-###################################?
+        return variable_cols
 
-
-    def split_dataset_in_loaders(self, test_size=0.3, val_size=0.5, random_state=42, batch_size=32):
+    def get_variable_features_loader(self, targets, batch_size=32, shuffle=True):
         """
-        Splits the dataset into training, validation, and testing loaders.
+        Returns a DataLoader for the variable features and targets of the dataset.
 
-        :param test_size: Proportion of the dataset to include in the test split.
-        :param val_size: Proportion of the test set to include in the validation set.
-        :param random_state: Random state for reproducibility.
-        :return: A tuple (train_loader, val_loader, test_loader).
+        :param batch_size: The size of each batch.
+        :param targets: The target values corresponding to each data point.
+        :return: DataLoader for variable features and targets.
         """
-        dataset_size = len(self)
-        indices = list(range(dataset_size))
-        train_indices, test_indices = train_test_split(indices, test_size=test_size, random_state=random_state)
-        val_indices, test_indices = train_test_split(test_indices, test_size=val_size, random_state=random_state)
+        assert len(self.features) == len(targets), "Length of features and targets must be the same."
 
-        # Custom collate function to select only variable columns
-        def custom_collate(batch):
-            # Retrieve only the features from variable_columns
-            variable_features = [self.features.iloc[idx][self.variable_columns].values for idx, _ in batch]
-            targets = [target for _, target in batch]
-            
-            # Convert to tensors
-            variable_features_tensor = torch.tensor(variable_features, dtype=torch.float32)
-            targets_tensor = torch.tensor(targets, dtype=torch.long)  # Adjust dtype if necessary
+        class VariableFeaturesDataset(Dataset):
+            def __init__(self, features, variable_columns, targets):
+                self.features = features[variable_columns]
+                self.targets = targets
 
-            return variable_features_tensor, targets_tensor
+            def __len__(self):
+                return len(self.features)
 
-        train_dataset = Subset(self, train_indices)
-        val_dataset = Subset(self, val_indices)
-        test_dataset = Subset(self, test_indices)
+            def __getitem__(self, idx):
+                # Convert features and targets to PyTorch tensors
+                feature_tensor = torch.tensor(self.features.iloc[idx].values, dtype=torch.float32)
+                target_tensor = torch.tensor(self.targets[idx], dtype=torch.long)  # Change to torch.long for classification tasks
+                return feature_tensor, target_tensor
 
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
+        # Create an instance of the inner dataset class with targets
+        variable_features_dataset = VariableFeaturesDataset(self.features, self.variable_columns, targets)
 
-        return train_loader, val_loader, test_loader
+        # Create and return the DataLoader
+        return DataLoader(variable_features_dataset, batch_size=batch_size, shuffle=shuffle)
 
     def process_features(self, corr_threshold=0.8):
         """
@@ -383,3 +421,11 @@ class FeaturesDataset(Dataset):
         """
         features = pd.read_csv(file_path)
         return cls(features, label_columns, variable_columns, target_column)
+    
+    def copy(self):
+        """
+        Creates a deep copy of the instance.
+
+        :return: A deep copy of the instance.
+        """
+        return copy.deepcopy(self)

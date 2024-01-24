@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 
 import data.preparation_eurythmy_data as ped
 
@@ -257,5 +258,26 @@ class SignalDataset(Dataset):
 
         self.signals = non_constant_signals
         self.features = pd.DataFrame(non_constant_features, columns=self.features.columns)
+
+    # Save and load
+    def save(self, file_path):
+        """
+        Saves the dataset to a file.
+
+        :param file_path: Path to the file where the dataset will be saved.
+        """
+        with open(file_path, 'wb') as file:
+            pickle.dump(self, file)
+
+    @classmethod
+    def load(cls, file_path):
+        """
+        Loads the dataset from a file.
+
+        :param file_path: Path to the file from which the dataset will be loaded.
+        :return: Loaded FeaturesDataset instance.
+        """
+        with open(file_path, 'rb') as file:
+            return pickle.load(file)
 
 

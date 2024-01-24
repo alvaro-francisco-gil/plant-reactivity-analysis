@@ -336,18 +336,19 @@ def add_meas_letters(feat_df):
 def get_targets_rq1_is_eurythmy(df):
     """
     RQ1: Is there any difference in the signals when someone is performing eurythmy?
-    Filters the DataFrame based on 'num_eurythmy' and 'eurythmy_letter', then processes the 'num_eurythmy' column.
+    Filters the DataFrame based on 'eurythmy_letter', then processes the 'num_eurythmy' column.
 
     :param df: DataFrame containing the columns 'num_eurythmy' and 'eurythmy_letter'.
     :return: A tuple containing the indexes list and the targets list.
-    """S
-    # Filter the DataFrame where 'num_eurythmy' is not 0 and 'eurythmy_letter' is not None
-    filtered_df = df[(df['num_eurythmy'] != 0) & df['eurythmy_letter'].notnull()]
+    """
+    # Filter the DataFrame where 'eurythmy_letter' is not None
+    filtered_df = df[df['eurythmy_letter'].notnull()]
 
     # Store the indexes of the filtered rows
     indexes = filtered_df.index.tolist()
 
     # Apply the operation to generate targets
+    # This will create a target of 1 if 'num_eurythmy' is greater than 0, else 0
     targets = [1 if x > 0 else 0 for x in filtered_df['num_eurythmy']]
 
     return indexes, targets
@@ -439,6 +440,8 @@ def get_indexes_and_targets_by_rq(rq_number, df):
     :param df: DataFrame to process.
     :return: A tuple containing the indexes list and the targets/classes/characters list.
     """
+    df= df.reset_index(drop=True)
+
     if rq_number == 1:
         return get_targets_rq1_is_eurythmy(df)
     elif rq_number == 2:
@@ -449,3 +452,67 @@ def get_indexes_and_targets_by_rq(rq_number, df):
         return get_targets_rq4_eurythmy_performance_habituation(df)
     else:
         raise ValueError("Invalid RQ number. Please provide a number between 1 and 4.")
+    
+def read_indexes_file():
+
+    split_indexes_path= r"..\data\interim\split_indexes.txt"
+    train_indexes = []
+    val_indexes = []
+    test_indexes = []
+    current_set = None
+
+    with open(split_indexes_path, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            line = line.strip()
+            if not line:
+                # Skip empty lines
+                continue
+            if line == "Training Set:":
+                current_set = train_indexes
+            elif line == "Validation Set:":
+                current_set = val_indexes
+            elif line == "Test Set:":
+                current_set = test_indexes
+            else:
+                if current_set is not None:
+                    current_set.append(int(line))
+
+    return train_indexes, val_indexes, test_indexes
+
+def find_matching_indexes(train_values, val_values, test_values, df, column):
+    """
+    Find indexes in a DataFrame where the column value matches values in given lists.
+
+    :param train_values: List of values to match against the training set
+    :param val_values: List of values to match against the validation set
+    :param test_values: List of values to match against the test set
+    :param df: DataFrame to search in
+    :param column: Column name in DataFrame to match values against
+    :return: Three lists containing indexes in the DataFrame for train, validation, and test values
+    """
+    train_indexes = df[df[column].isin(train_values)].index.tolist()
+    val_indexes = df[df[column].isin(val_values)].index.tolist()
+    test_indexes = df[df[column].isin(test_values)].index.tolist()
+
+    return train_indexes, val_indexes, test_indexes
+
+def get_train_val_test_indexes(df):
+    """
+    Get the train, validation and test indexes given the Dataframe.
+
+    :param df: Dataframe representing the features
+    """
+    # Read 'id_measurement' idxs from text file
+    train_values, val_values, test_values= read_indexes_file()
+
+    # Find the indexes equal to 'id_measurement' for each group
+    train_indexes, val_indexes, test_indexes= find_matching_indexes(train_values, val_values, test_values, df, column='id_measurement')
+
+    return train_indexes, val_indexes, test_indexes
+
+    
+
+
+
+
