@@ -36,7 +36,7 @@ class FullyConnectedClassifier(nn.Module):
         self.model.to(self.device)
 
         # Early stopping attributes
-        self.early_stopping_patience = int(parameters.get('early_stopping_patience', 3))
+        self.early_stopping_patience = int(parameters.get('early_stopping_patience', 5))
         self.early_stopping_counter = 0
         self.best_loss = float('inf')
         self.early_stop = False

@@ -28,6 +28,9 @@ class HyperparameterTuner:
         for params in self.param_grid_values:
             # Create a parameter dictionary for hyperparameters
             param_dict = dict(zip(self.param_grid_keys, params))
+            
+            # Print the parameters for the current model
+            print("Training model with parameters:", param_dict)
 
             # Instantiate the model with input_size, output_size, and hyperparameters
             model = self.model_class(self.input_size, self.output_size, param_dict)

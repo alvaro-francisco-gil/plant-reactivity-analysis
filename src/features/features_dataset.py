@@ -84,6 +84,13 @@ class FeaturesDataset(Dataset):
         self._features = value
 
     @property
+    def objective_features(self):
+        """
+        Returns a DataFrame with only the objective (variable) columns.
+        """
+        return self.features[self.variable_columns]
+
+    @property
     def label_columns(self):
         return self._label_columns
 

@@ -385,6 +385,7 @@ def get_targets_rq2_what_letter(df):
 @staticmethod
 def get_targets_rq3_eurythmy_habituation(df):
     """
+    RQ3: Is there any eurythmy habituation in the plant between different days?
     Assigns classes based on 'num_eurythmy' and returns indexes and classes.
 
     :param df: DataFrame containing the 'num_eurythmy' column.
@@ -415,6 +416,7 @@ def get_targets_rq3_eurythmy_habituation(df):
 @staticmethod
 def get_targets_rq4_eurythmy_performance_habituation(df):
     """
+    RQ4: Is there any eurythmy habituation in the plant between several gestures in the same performance?
     Extracts the second character of 'eurythmy_letter' and returns indexes and the characters list.
     Filters out rows where 'num_eurythmy' is 0 or 'eurythmy_letter' is None.
 
@@ -428,9 +430,11 @@ def get_targets_rq4_eurythmy_performance_habituation(df):
     indexes = filtered_df.index.tolist()
 
     # Extract the second character of 'eurythmy_letter'
-    classes = [letter[1] if len(letter) > 1 else None for letter in filtered_df['eurythmy_letter']]
+    classes = [int(letter[1]) if len(letter) > 1 else None for letter in filtered_df['eurythmy_letter']]
 
-    return indexes, classes
+    updated_classes = [(int(num) - 1) for num in classes]
+
+    return indexes, updated_classes
 
 def get_indexes_and_targets_by_rq(rq_number, df):
     """
