@@ -332,7 +332,6 @@ def add_meas_letters(feat_df):
     
     return new_df
 
-@staticmethod
 def get_targets_rq1_is_eurythmy(df):
     """
     RQ1: Is there any difference in the signals when someone is performing eurythmy?
@@ -353,7 +352,6 @@ def get_targets_rq1_is_eurythmy(df):
 
     return indexes, targets
 
-@staticmethod
 def get_targets_rq2_what_letter(df):
     """
     RQ2: Is there any difference in the signals between different eurythmy letters?
@@ -382,7 +380,6 @@ def get_targets_rq2_what_letter(df):
 
     return indexes, target_list
 
-@staticmethod
 def get_targets_rq3_eurythmy_habituation(df):
     """
     RQ3: Is there any eurythmy habituation in the plant between different days?
@@ -413,7 +410,6 @@ def get_targets_rq3_eurythmy_habituation(df):
 
     return indexes, classes
 
-@staticmethod
 def get_targets_rq4_eurythmy_performance_habituation(df):
     """
     RQ4: Is there any eurythmy habituation in the plant between several gestures in the same performance?
@@ -501,7 +497,7 @@ def find_matching_indexes(train_values, val_values, test_values, df, column):
 
     return train_indexes, val_indexes, test_indexes
 
-def get_train_val_test_indexes(df):
+def get_train_val_test_indexes_by_wav(df):
     """
     Get the train, validation and test indexes given the Dataframe.
 
@@ -514,9 +510,3 @@ def get_train_val_test_indexes(df):
     train_indexes, val_indexes, test_indexes= find_matching_indexes(train_values, val_values, test_values, df, column='id_measurement')
 
     return train_indexes, val_indexes, test_indexes
-
-    
-
-
-
-

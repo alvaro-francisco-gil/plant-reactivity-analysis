@@ -9,43 +9,57 @@ import copy
 
 from data.signal_dataset import SignalDataset
 from features.wav_feature_extractor import WavFeatureExtractor
+import data.preparation_eurythmy_data as ped
 
 class FeaturesDataset(Dataset):
-    def __init__(self, signal_dataset: SignalDataset, feature_extractor: WavFeatureExtractor):
+    def __init__(self, features, label_columns, variable_columns, target_column):
         """
         Initialize the FeaturesDataset instance.
-
-        :param signal_dataset: An instance of SignalDataset containing signals and features.
-        :param feature_extractor: An instance of WavFeatureExtractor to extract variable features.
         """
-        # Extract variable features and columns from the WavFeatureExtractor
-        variable_features, variable_columns = feature_extractor.extract_features_multiple_waveforms(
-            waveforms=signal_dataset.signals
-        )
-
-        # Construct DataFrame for variable features
-        variable_features_df = pd.DataFrame(variable_features, columns=variable_columns)
-
-        # Resetting the index of the features attribute of signal_dataset in place
-        signal_dataset.features.reset_index(drop=True, inplace=True)
-
-        # Concatenate variable features with features from SignalDataset
-        self.features = pd.concat([signal_dataset.features, variable_features_df], axis=1)
-
-        # Label columns are the original columns from SignalDataset
-        self.label_columns = list(signal_dataset.features.columns)
-
-        # Variable columns are those extracted by WavFeatureExtractor
+        self._features = features
+        self.label_columns = label_columns
         self.variable_columns = variable_columns
+        self._target_column_name = target_column
 
-        # Inherit the target column from SignalDataset only if it's not None
-        self.target_column = signal_dataset.target_column if signal_dataset.target_column is not None else None
+        # Standardization attribute can be set externally if required
+        self.standardization = None
 
-        # Inherit the standardization method of the signal
-        self.standardization = signal_dataset.standardization if signal_dataset.standardization is not None else None
+    # Getters and Setters
+    @property
+    def features(self):
+        return self._features
 
+    @features.setter
+    def features(self, value):
+        assert isinstance(value, pd.DataFrame), "Features must be a pandas DataFrame."
+        self._features = value
 
-    # Dataset heritage
+    # Getters and Setters for target_column_name
+    @property
+    def target_column_name(self):
+        return self._target_column_name
+
+    @target_column_name.setter
+    def target_column_name(self, value):
+        assert isinstance(value, str), "Target column name must be a string."
+        self._target_column_name = value
+
+    # Derived properties
+    @property
+    def objective_features(self):
+        """
+        Returns a DataFrame with only the objective (variable) columns.
+        """
+        return self._features[self._variable_columns]
+    
+    @property
+    def label_features(self):
+        """
+        Returns a DataFrame with only the label columns.
+        """
+        return self._features[self._label_columns]
+   
+       # Dataset heritage
     def __len__(self):
         """
         Returns the number of samples in the dataset.
@@ -72,51 +86,6 @@ class FeaturesDataset(Dataset):
         target_tensor = torch.tensor(target, dtype=torch.long)  
 
         return feature_tensor, target_tensor
-
-    # Getters and Setters
-    @property
-    def features(self):
-        return self._features
-
-    @features.setter
-    def features(self, value):
-        assert isinstance(value, pd.DataFrame), "Features must be a pandas DataFrame."
-        self._features = value
-
-    @property
-    def objective_features(self):
-        """
-        Returns a DataFrame with only the objective (variable) columns.
-        """
-        return self.features[self.variable_columns]
-
-    @property
-    def label_columns(self):
-        return self._label_columns
-
-    @label_columns.setter
-    def label_columns(self, value):
-        assert isinstance(value, list), "Label columns must be a list."
-        self._label_columns = value
-
-    @property
-    def variable_columns(self):
-        return self._variable_columns
-
-    @variable_columns.setter
-    def variable_columns(self, value):
-        assert isinstance(value, list), "Variable columns must be a list."
-        self._variable_columns = value
-
-    @property
-    def target_column(self):
-        return self.target_column
-
-    @target_column.setter
-    def target_column(self, value):
-        assert isinstance(value, str), "Target column must be a string."
-        self.target_column = value
-
     
     # Data Handling
     def drop_columns(self, columns_to_drop):
@@ -191,6 +160,37 @@ class FeaturesDataset(Dataset):
 
         # Drop the unwanted columns from the features DataFrame
         self.features.drop(columns=columns_to_drop, inplace=True)
+
+    def keep_only_specified_rows(self, indexes_to_keep):
+        """
+        Transforms the dataset into a new one keeping only the specified indexes.
+
+        :param indexes_to_keep: List of indexes to keep in the dataset.
+        """
+        # Calculate the indexes to drop
+        all_indexes = set(range(len(self.features)))
+        indexes_to_drop = list(all_indexes - set(indexes_to_keep))
+
+        # Drop the unwanted indexes
+        self.features.drop(indexes_to_drop, inplace=True)
+        self.features.reset_index(drop=True, inplace=True)    
+
+    def add_variable_feature(self, column_name, column_data):
+        """
+        Adds a new variable feature to the dataset.
+
+        :param column_name: The name of the new variable feature column.
+        :param column_data: The data for the new column. Must be the same length as the dataset.
+        """
+        # Ensure the column_data length matches the current dataset length
+        if len(column_data) != len(self._features):
+            raise ValueError("Length of column_data must match the length of the dataset.")
+
+        # Add the new column to the DataFrame
+        self._features[column_name] = column_data
+
+        # Append the new column name to the variable columns list
+        self._variable_columns.append(column_name)
 
     # Data processing
     def normalize_features(self, method='zscore'):
@@ -341,6 +341,7 @@ class FeaturesDataset(Dataset):
 
         return variable_cols
 
+    #####?
     def get_variable_features_loader(self, targets, batch_size=32, shuffle=True):
         """
         Returns a DataLoader for the variable features and targets of the dataset.
@@ -370,6 +371,23 @@ class FeaturesDataset(Dataset):
 
         # Create and return the DataLoader
         return DataLoader(variable_features_dataset, batch_size=batch_size, shuffle=shuffle)
+
+    def prepare_dataset(self, drop_constant: bool, drop_flatness: bool):
+        """
+        Prepares the dataset by dropping constant value rows and/or specified columns.
+
+        :param drop_constant: If True, drops rows where 'flatness_ratio_100' has a constant value of 1.
+        :param drop_flatness: If True, drops specified flatness ratio columns.
+        :return: Modified FeaturesDataset instance.
+        """
+        if drop_constant:
+            indexes_constant_value = self.features[self.features['flatness_ratio_100'] == 1].index.tolist()
+            self.drop_rows(indexes_constant_value)
+
+        if drop_flatness:
+            columns_to_drop = ['duration_seconds', 'flatness_ratio_10000', 'flatness_ratio_5000', 
+                               'flatness_ratio_1000', 'flatness_ratio_500', 'flatness_ratio_100']
+            self.drop_columns(columns_to_drop=columns_to_drop)
 
     def process_features(self, corr_threshold=0.8):
         """
@@ -429,10 +447,81 @@ class FeaturesDataset(Dataset):
         features = pd.read_csv(file_path)
         return cls(features, label_columns, variable_columns, target_column)
     
+    @classmethod
+    def from_signal_dataset(cls, signal_dataset, feature_extractor):
+        """
+        Class method to initialize FeaturesDataset instance from SignalDataset and WavFeatureExtractor.
+        """
+        var_features, var_columns = feature_extractor.extract_features_multiple_waveforms(
+            waveforms=signal_dataset.signals
+        )
+        var_features_df = pd.DataFrame(var_features, columns=var_columns)
+        signal_dataset.features.reset_index(drop=True, inplace=True)
+        features = pd.concat([signal_dataset.features, var_features_df], axis=1)
+        label_columns = list(signal_dataset.features.columns)
+        target_column = signal_dataset.target_column if signal_dataset.target_column is not None else None
+
+        return cls(features, label_columns, var_columns, target_column)
+
+    # ... rest of your class methods ...
+    
     def copy(self):
         """
         Creates a deep copy of the instance.
 
         :return: A deep copy of the instance.
         """
-        return copy.deepcopy(self)
+        return copy.deepcopy(self)   
+
+    def get_subset(self, indexes):
+        """
+        Creates a subset of the dataset based on the given indexes.
+
+        :param indexes: A list of indexes to include in the subset.
+        :return: A new FeaturesDataset instance containing the subset.
+        """
+        # Create a deep copy of the current instance
+        subset_dataset = self.copy()
+
+        # Keep only the rows corresponding to the provided indexes
+        subset_dataset.features = subset_dataset.features.iloc[indexes]
+
+        return subset_dataset     
+
+    def return_subset_given_research_question(self, rq_number):
+        """
+        Creates a subset of the dataset based on a specific research question.
+
+        :param rq_number: The research question number.
+        :return: A new FeaturesDataset instance containing the subset.
+        """
+        # Get indexes and targets based on the research question
+        indexes, targets = ped.get_indexes_and_targets_by_rq(rq_number, self.label_features)
+        
+        # Create a deep copy of the current instance
+        subset_dataset = self.copy()
+
+        # Apply modifications to the copy
+        subset_dataset.keep_only_specified_rows(indexes)
+        subset_dataset.add_variable_feature('target', targets)
+        subset_dataset.target_column = 'target'
+
+        return subset_dataset
+    
+    def split_dataset(self, split_by_wav: bool, test_size: float = 0.2, val_size: float = 0.2, random_state: bool = True):
+        if split_by_wav:
+            # Split based on wav files
+            train_indexes, val_indexes, test_indexes = ped.get_train_val_test_indexes_by_wav()
+        else:
+            # Split based on proportions
+            indexes = range(len(self.features))
+            train_indexes, test_indexes = train_test_split(indexes, test_size=test_size, random_state=random_state)
+            relative_val_size = val_size / (1 - test_size)
+            train_indexes, val_indexes = train_test_split(train_indexes, test_size=relative_val_size, random_state=random_state)
+
+        # Create datasets for each split using the indexes
+        train_dataset = self.get_subset(train_indexes)
+        val_dataset = self.get_subset(val_indexes)
+        test_dataset = self.get_subset(test_indexes)
+
+        return train_dataset, val_dataset, test_dataset

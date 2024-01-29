@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
+import copy
 
 import data.preparation_eurythmy_data as ped
 
@@ -279,5 +280,37 @@ class SignalDataset(Dataset):
         """
         with open(file_path, 'rb') as file:
             return pickle.load(file)
+        
+    def copy(self):
+        """
+        Creates a deep copy of the instance.
+
+        :return: A deep copy of the instance.
+        """
+        return copy.deepcopy(self)
+
+    def average_signal(self, indexes):
+        """
+        Calculates the average of signals at the given indexes.
+
+        :param indexes: List of indexes for which to calculate the average signal.
+        :return: The average signal as a list or array.
+        """
+        assert all(idx < len(self.signals) for idx in indexes), "All indexes must be within the range of the dataset."
+
+        # Initialize a variable to sum the signals
+        sum_signal = None
+
+        # Sum the signals at the given indexes
+        for idx in indexes:
+            signal = self.signals[idx]
+            if sum_signal is None:
+                sum_signal = signal
+            else:
+                sum_signal = [sum(x) for x in zip(sum_signal, signal)]
+
+        # Calculate the average of the signals
+        avg_signal = [x / len(indexes) for x in sum_signal]
+        return avg_signal
 
 
