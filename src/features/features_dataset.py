@@ -6,6 +6,7 @@ from scipy import stats
 import numpy as np
 import pickle
 import copy
+from collections import Counter
 
 from data.signal_dataset import SignalDataset
 from features.wav_feature_extractor import WavFeatureExtractor
@@ -50,14 +51,24 @@ class FeaturesDataset(Dataset):
         """
         Returns a DataFrame with only the objective (variable) columns.
         """
-        return self._features[self._variable_columns]
+        return self._features[self.variable_columns]
     
     @property
     def label_features(self):
         """
         Returns a DataFrame with only the label columns.
         """
-        return self._features[self._label_columns]
+        return self._features[self.label_columns]
+    
+    def get_targets(self):
+        """
+        Returns the target column values as a list.
+
+        :return: List of target values.
+        """
+        if self._target_column_name not in self._features.columns:
+            raise ValueError(f"Target column '{self._target_column_name}' not found in features DataFrame.")
+        return self._features[self._target_column_name].tolist()
    
        # Dataset heritage
     def __len__(self):
@@ -68,26 +79,39 @@ class FeaturesDataset(Dataset):
         """
         return len(self.features)
     
-    def __getitem__(self, idx: int):
-        """
-        Retrieves a single sample and its corresponding target from the dataset.
-
-        :param idx: The index of the sample to retrieve.
-        :return: A tuple containing the feature vector and its corresponding target.
-        """
-        # Select only the variable features for the given index
+    def __getitem__(self, idx):
+        # Extract features and target for the given index
         variable_feature = self.features.loc[idx, self.variable_columns].values
+        target = self.features.loc[idx, self._target_column_name]
 
-        # Get the target value from the target column
-        target = self.features.loc[idx, self.target_column]
+        # Ensure data is numeric and convert to appropriate types
+        variable_feature = np.asarray(variable_feature, dtype=np.float32)
+        target = np.asarray(target, dtype=np.int64)  # or np.float32, depending on your target data
 
         # Convert to PyTorch tensors
         feature_tensor = torch.tensor(variable_feature, dtype=torch.float32)
-        target_tensor = torch.tensor(target, dtype=torch.long)  
+        target_tensor = torch.tensor(target, dtype=torch.long)
 
         return feature_tensor, target_tensor
     
     # Data Handling
+
+    def add_target_column(self, column_name, target_values):
+        """
+        Adds a target column to the dataset.
+
+        :param column_name: Name of the new target column.
+        :param target_values: List or Series of target values.
+        """
+        assert isinstance(target_values, (list, pd.Series)), "Target values must be a list or Pandas Series."
+        assert len(target_values) == len(self._features), "Length of target_values must match the number of samples."
+
+        # Add the target column to the features DataFrame
+        self._features[column_name] = target_values
+
+        # Update the target column name
+        self._target_column_name = column_name
+
     def drop_columns(self, columns_to_drop):
         """
         Drops specified columns from the features DataFrame.
@@ -190,7 +214,7 @@ class FeaturesDataset(Dataset):
         self._features[column_name] = column_data
 
         # Append the new column name to the variable columns list
-        self._variable_columns.append(column_name)
+        self.variable_columns.append(column_name)
 
     # Data processing
     def normalize_features(self, method='zscore'):
@@ -202,7 +226,7 @@ class FeaturesDataset(Dataset):
         :return: A dictionary containing the normalization parameters used.
         """
         # Work only with variable columns that are numeric
-        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns]
+        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns and col != self._target_column_name]
 
         normalization_params = {}
 
@@ -237,8 +261,7 @@ class FeaturesDataset(Dataset):
                                      or 'min' and 'max' for 'minmax' method.
         """
         # Work only with variable columns that are numeric
-        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns]
-
+        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns and col != self._target_column_name]
         if 'mean' in normalization_params and 'std' in normalization_params:
             # Apply z-score normalization
             mean = normalization_params['mean']
@@ -292,30 +315,20 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
-    def reduce_features(self, targets, corr_threshold=0.8):
-        assert len(targets) == len(self.features), "Length of targets must match the number of samples."
-        assert all(isinstance(target, (int, float)) for target in targets), "Targets must be numeric."
+    def reduce_features(self, corr_threshold=0.8):
+        """
+        Reduces features based on correlation, without comparing with the target.
 
+        :param corr_threshold: Threshold for correlation above which features are considered redundant.
+        :return: List of variable columns after reduction.
+        """
+        # Ensure variable_columns are in the DataFrame
         variable_cols = [col for col in self.variable_columns if col in self.features.columns]
 
-        p_values = {}
-        num_classes = len(set(targets))
-        for feature in variable_cols:
-            if num_classes == 2:
-                p_value = stats.ttest_ind(
-                    self.features[feature][np.array(targets) == 0],
-                    self.features[feature][np.array(targets) == 1]
-                ).pvalue
-            else:
-                groups = [self.features[feature][np.array(targets) == val] for val in set(targets)]
-                if len(groups) > 1:
-                    p_value = stats.f_oneway(*groups).pvalue
-                else:
-                    p_value = float('inf')  # Assign a high p-value to effectively skip this feature
-            p_values[feature] = p_value
-
+        # Calculate the correlation matrix of the features
         corr_matrix = self.features[variable_cols].corr().abs()
 
+        # Identify pairs of highly correlated features
         while True:
             correlated_pairs = np.where((corr_matrix > corr_threshold) & (corr_matrix < 1))
             if not any(correlated_pairs[0]):
@@ -325,12 +338,11 @@ class FeaturesDataset(Dataset):
             for idx1, idx2 in zip(*correlated_pairs):
                 feature1, feature2 = variable_cols[idx1], variable_cols[idx2]
 
-                # Check if both features exist in p_values to avoid KeyError
-                if p_values.get(feature1, float('inf')) < p_values.get(feature2, float('inf')):
-                    removal_candidates.add(feature2)
-                else:
-                    removal_candidates.add(feature1)
+                # Decide which feature to remove
+                # You can enhance this logic based on additional criteria if needed
+                removal_candidates.add(feature1)
 
+            # Remove the redundant features
             initial_variable_columns_count = len(variable_cols)
             self.features.drop(columns=list(removal_candidates), inplace=True)
             variable_cols = [col for col in variable_cols if col not in removal_candidates]
@@ -475,7 +487,7 @@ class FeaturesDataset(Dataset):
 
     def get_subset(self, indexes):
         """
-        Creates a subset of the dataset based on the given indexes.
+        Creates a subset of the dataset based on the given indexes and resets the index.
 
         :param indexes: A list of indexes to include in the subset.
         :return: A new FeaturesDataset instance containing the subset.
@@ -483,10 +495,10 @@ class FeaturesDataset(Dataset):
         # Create a deep copy of the current instance
         subset_dataset = self.copy()
 
-        # Keep only the rows corresponding to the provided indexes
-        subset_dataset.features = subset_dataset.features.iloc[indexes]
+        # Keep only the rows corresponding to the provided indexes and reset the index
+        subset_dataset.features = subset_dataset.features.iloc[indexes].reset_index(drop=True)
 
-        return subset_dataset     
+        return subset_dataset 
 
     def return_subset_given_research_question(self, rq_number):
         """
@@ -503,8 +515,7 @@ class FeaturesDataset(Dataset):
 
         # Apply modifications to the copy
         subset_dataset.keep_only_specified_rows(indexes)
-        subset_dataset.add_variable_feature('target', targets)
-        subset_dataset.target_column = 'target'
+        subset_dataset.add_target_column('target', targets)
 
         return subset_dataset
     
@@ -515,13 +526,32 @@ class FeaturesDataset(Dataset):
         else:
             # Split based on proportions
             indexes = range(len(self.features))
-            train_indexes, test_indexes = train_test_split(indexes, test_size=test_size, random_state=random_state)
-            relative_val_size = val_size / (1 - test_size)
-            train_indexes, val_indexes = train_test_split(train_indexes, test_size=relative_val_size, random_state=random_state)
+            if val_size == 0:
+                # Only perform a train-test split
+                train_indexes, test_indexes = train_test_split(indexes, test_size=test_size, random_state=random_state)
+                val_indexes = []  # No validation indexes
+            else:
+                # Perform a train-test split and then a train-validation split
+                train_indexes, test_indexes = train_test_split(indexes, test_size=test_size, random_state=random_state)
+                relative_val_size = val_size / (1 - test_size)
+                train_indexes, val_indexes = train_test_split(train_indexes, test_size=relative_val_size, random_state=random_state)
 
         # Create datasets for each split using the indexes
         train_dataset = self.get_subset(train_indexes)
-        val_dataset = self.get_subset(val_indexes)
         test_dataset = self.get_subset(test_indexes)
+        val_dataset = self.get_subset(val_indexes) if val_size > 0 else None
 
         return train_dataset, val_dataset, test_dataset
+
+    def print_target_distribution(self):
+        """
+        Prints the counts and percentages of the target column.
+        """
+        target_values = self.get_targets()
+        count = Counter(target_values)
+        total = sum(count.values())
+        
+        print("Counts and Percentages:")
+        for key, value in count.items():
+            percentage = (value / total) * 100
+            print(f"Class {key}: Count = {value}, Percentage = {percentage:.2f}%")    

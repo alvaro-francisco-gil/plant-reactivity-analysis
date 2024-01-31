@@ -301,14 +301,7 @@ def match_measurements_with_letters(df, time_dict):
 
     return df
 
-
-def add_meas_letters(feat_df):
-    """
-    Adds a new column 'eurythmy_letter' to the DataFrame.
-
-    :param feat_df: DataFrame containing the measurement features.
-    :return: DataFrame with the added column 'eurythmy_letter'.
-    """
+def return_letter_dictionary(indexes):
 
     letter_columns= ['A1_start', 'A1_end', 'G1_start', 'G1_end', 'D1_start',
        'D1_end', 'A2_start', 'A2_end', 'G2_start', 'G2_end', 'D2_start',
@@ -323,9 +316,20 @@ def add_meas_letters(feat_df):
     df_meas = pd.read_csv(meas_file, index_col='id_measurement')
 
     # Extract and format letters data
-    indexes= feat_df['id_measurement'].tolist()
     letter_dictionary= extract_data_by_index_and_columns(df_meas, indexes, letter_columns)
     letter_dictionary = format_letter_dict(letter_dictionary)
+
+    return letter_dictionary
+
+def add_meas_letters(feat_df):
+    """
+    Adds a new column 'eurythmy_letter' to the DataFrame.
+
+    :param feat_df: DataFrame containing the measurement features.
+    :return: DataFrame with the added column 'eurythmy_letter'.
+    """
+    indexes= feat_df['id_measurement'].tolist()
+    letter_dictionary= return_letter_dictionary(indexes)
 
     # Include letter data in the df
     new_df= match_measurements_with_letters(feat_df, letter_dictionary)

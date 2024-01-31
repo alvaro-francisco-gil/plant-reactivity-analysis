@@ -1,19 +1,21 @@
 import librosa
 import numpy as np
+from pyAudioAnalysis import MidTermFeatures as aF
 from scipy import stats
 
 class WavFeatureExtractor:
-    def __init__(self, sample_rate: int = 10000, mfccs: bool = True, temporal: bool = True, statistical: bool = True):
+    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True, temporal: bool = True, statistical: bool = True):
         """
         Initialize the WavFeatureExtractor with default parameters.
 
         :param sample_rate: Sample rate of the audio.
-        :param mfccs: Whether to extract MFCC features.
+        :param lib_mfccs: Whether to extract MFCC features.
         :param temporal: Whether to extract temporal features.
         :param statistical: Whether to extract statistical features.
         """
         self.sample_rate = sample_rate
-        self.mfccs = mfccs
+        self.lib_mfccs = lib_mfccs
+        self.pyau_mfccs = pyau_mfccs
         self.temporal = temporal
         self.statistical = statistical
 
@@ -303,13 +305,13 @@ class WavFeatureExtractor:
 
         return feature_values, feature_labels
 
-    def extract_mfcc_features(self, waveform, n_mfcc: int = 13, n_fft: int = 2000, hop_length: int = 500):
+    def extract_librosa_mfcc_features(self, waveform, n_mfcc: int = 13, n_fft: int = 2000, hop_length: int = 500):
         """
         Extracts MFCC features from an audio waveform, computes the average and standard 
         deviation of each MFCC across time, and returns these statistics along with their labels.
 
         :param waveform: A numpy array representing the audio waveform.
-        :param n_mfcc: Number of MFCCs to return.
+        :param n_mfcc: Number of lib_mfccs to return.
         :param n_fft: Length of the FFT window.
         :param hop_length: Number of samples between successive frames.
         :return: A tuple containing two elements: a numpy array of the MFCC statistics and a list of corresponding labels.
@@ -318,24 +320,45 @@ class WavFeatureExtractor:
         if not np.issubdtype(waveform.dtype, np.floating):
             waveform = waveform.astype(np.float64)
 
-        # Extract MFCCs from the waveform
-        mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, 
+        # Extract lib_mfccs from the waveform
+        lib_mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, 
                                      n_fft=n_fft, hop_length=hop_length)
 
         # Calculate the average and standard deviation of each MFCC
-        mfccs_avg = np.mean(mfccs, axis=1)
-        mfccs_std = np.std(mfccs, axis=1)
+        mfccs_avg = np.mean(lib_mfccs, axis=1)
+        mfccs_std = np.std(lib_mfccs, axis=1)
 
         # Generate labels for each MFCC statistic
-        avg_labels = [f'mfcc_{i+1}_avg' for i in range(n_mfcc)]
-        std_labels = [f'mfcc_{i+1}_std' for i in range(n_mfcc)]
+        avg_labels = [f'lib_mfcc_{i+1}_avg' for i in range(n_mfcc)]
+        std_labels = [f'lib_mfcc_{i+1}_std' for i in range(n_mfcc)]
 
         # Concatenate the averaged and standard deviation features and their labels
         mfccs_features = np.concatenate((mfccs_avg, mfccs_std))
         feature_labels = avg_labels + std_labels
 
         return mfccs_features, feature_labels
+    
+    def extract_pyaudio_mfcc_features(self, waveform, fs, window_size, hop_length):
+        # Get mid-term (segment) feature statistics and respective short-term features
+        mt, st, mt_n = aF.mid_feature_extraction(
+            waveform,             # The audio signal (time-domain waveform)
+            fs,                   # Sample rate of the audio signal (in Hz)
+            len(waveform),        # Mid-term window size (in samples)
+            len(waveform),        # Mid-term window step (in samples)
+            window_size * fs,     # Short-term window size (in samples)
+            hop_length * fs       # Short-term window step (in samples)
+        )
 
+        feature_names = []
+        feature_values = []
+
+        # Iterate over feature names and mean features to populate the lists
+        for name, value in zip(mt_n, mt):
+            feature_names.append(name)
+            feature_values.append(float(value))
+
+        return feature_names, feature_values    
+    
     def extract_features_waveform(self, waveform):
         """
         Extracts all features using the specified feature extraction methods and
@@ -347,11 +370,17 @@ class WavFeatureExtractor:
         feature_values = []
         feature_labels = []
         
-        if self.mfccs:
+        if self.lib_mfccs:
             # Extract MFCC features
-            mfcc_values, mfcc_labels = self.extract_mfcc_features(waveform)
+            mfcc_values, mfcc_labels = self.extract_librosa_mfcc_features(waveform)
             feature_values.extend(mfcc_values)
             feature_labels.extend(mfcc_labels)
+
+        if self.pyau_mfccs:
+            # Extract MFCC features
+            py_mfcc_values, py_mfcc_labels = self.extract_pyaudio_mfcc_features(waveform)
+            feature_values.extend(py_mfcc_values)
+            feature_labels.extend(py_mfcc_labels)
 
         if self.temporal:
             # Extract temporal features
@@ -372,7 +401,7 @@ class WavFeatureExtractor:
         Extracts features from a list of waveforms using specified feature extraction methods.
 
         :param waveforms: A list of numpy arrays, each representing an audio waveform.
-        :param mfccs: Boolean flag to include MFCC features.
+        :param lib_mfccs: Boolean flag to include MFCC features.
         :param temporal: Boolean flag to include temporal features.
         :param statistical: Boolean flag to include statistical features.
         :return: Two lists - one containing all the feature values from all waveforms,
