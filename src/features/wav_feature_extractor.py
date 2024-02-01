@@ -4,7 +4,8 @@ from pyAudioAnalysis import MidTermFeatures as aF
 from scipy import stats
 
 class WavFeatureExtractor:
-    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True, temporal: bool = True, statistical: bool = True, window_size: float= 1, hop_length: float= 1):
+    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True,
+                 temporal: bool = True, statistical: bool = True, window_size: float= 1, hop_length: float= 1):
         """
         Initialize the WavFeatureExtractor with default parameters.
 
@@ -344,25 +345,17 @@ class WavFeatureExtractor:
         return mfccs_features, feature_labels
     
     def extract_pyaudio_mfcc_features(self, waveform, st_window_size= 0.05, st_hop_length= 0.05):
-        # Get mid-term (segment) feature statistics and respective short-term features
+        
         mt, st, mt_n = aF.mid_feature_extraction(
             waveform,             # The audio signal (time-domain waveform)
             self.sample_rate,                   # Sample rate of the audio signal (in Hz)
             round(self.sample_rate*self.window_size),        # Mid-term window size (in samples)
             round(self.sample_rate*self.hop_length),        # Mid-term window step (in samples)
-            st_window_size,     # Short-term window size (in samples)
-            st_hop_length       # Short-term window step (in samples)
+            round(self.sample_rate*st_window_size),     # Short-term window size (in samples)
+            round(self.sample_rate*st_hop_length)       # Short-term window step (in samples)
         )
 
-        feature_names = []
-        feature_values = []
-
-        # Iterate over feature names and mean features to populate the lists
-        for name, value in zip(mt_n, mt):
-            feature_names.append(name)
-            feature_values.append(float(value))
-
-        return feature_names, feature_values    
+        return mt, mt_n
     
     def extract_features_waveform(self, waveform):
         """

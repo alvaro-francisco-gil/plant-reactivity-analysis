@@ -31,6 +31,7 @@ class SignalDataset(Dataset):
         self.features = features
         self.sample_rate = sample_rate
         self.target_column = target_column
+        self.standardization = None
 
 
     # Dataset methods
