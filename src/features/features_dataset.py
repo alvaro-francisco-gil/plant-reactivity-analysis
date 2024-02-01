@@ -13,7 +13,8 @@ from features.wav_feature_extractor import WavFeatureExtractor
 import data.preparation_eurythmy_data as ped
 
 class FeaturesDataset(Dataset):
-    def __init__(self, features, label_columns, variable_columns, target_column):
+    def __init__(self, features: pd.DataFrame= None, label_columns: list= None,
+                 variable_columns: list= None, target_column: str=None):
         """
         Initialize the FeaturesDataset instance.
         """

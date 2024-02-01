@@ -20,6 +20,10 @@ class WavDataReader:
         elif filename:
             self.read_single_wav_file(filename)
 
+        print(f"Total WAV files read: {len(self.data)}")
+
+        
+
     @staticmethod
     def extract_key_from_filename(filename: str):
         """

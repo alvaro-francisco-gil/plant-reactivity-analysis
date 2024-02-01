@@ -25,7 +25,6 @@ class SignalDataset(Dataset):
                 feature_labels = [f'feature_{i}' for i in range(len(features[0]))]
             features = pd.DataFrame(features, columns=feature_labels)
 
-        # Reset the index of the DataFrame
         features.reset_index(drop=True, inplace=True)
 
         self.signals = signals
@@ -198,7 +197,7 @@ class SignalDataset(Dataset):
             plt.show()
 
     # Manipulation
-    def segment_signals(self, segment_duration):
+    def segment_signals_by_duration(self, segment_duration):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
         including the start of each segment as a new feature. Resets the index of the features DataFrame.
@@ -226,45 +225,31 @@ class SignalDataset(Dataset):
         self.signals = new_signals
         self.features = pd.DataFrame(new_features).reset_index(drop=True)
 
-    def trim_signals_and_update_features(self, column_name, intervals):
-        """
-        Trims signals based on given intervals, updates the features DataFrame,
-        and adds a new 'segment' column without altering the original column.
-
-        :param column_name: The name of the column in 'features' DataFrame to match signal keys in intervals.
-        :param intervals: A nested dictionary with outer keys as signal identifiers and inner keys as segment labels with their corresponding start and end times in seconds.
-        """
+    def segment_signals_by_dict(self, id_column, segments_dict):
+        # Initialize new lists for segmented signals and their features
         new_signals = []
         new_features = []
 
-        # Ensure there's a 'segment' column; initialize if it doesn't exist
-        if 'segment' not in self.features.columns:
-            self.features['segment'] = None
+        for idx, signal in enumerate(self.signals):
+            measurement_id = self.features.iloc[idx][id_column]
+            if measurement_id in segments_dict:
+                for segment_name, (start_sec, end_sec) in segments_dict[measurement_id].items():
+                    start_sample = int(start_sec * self.sample_rate)
+                    end_sample = int(end_sec * self.sample_rate)
+                    new_signal = signal[start_sample:end_sample]
 
-        # Iterate over the intervals dictionary
-        for signal_key, segments in intervals.items():
-            # Find the rows in features DataFrame that match the current signal_key based on the specified column_name
-            matching_indices = self.features[self.features[column_name] == signal_key].index
-            
-            for segment_label, segment_range in segments.items():
-                start_sec, end_sec = segment_range
-                start_idx = int(start_sec * self.sample_rate)
-                end_idx = int(end_sec * self.sample_rate)
+                    # Check to ensure the segment is not empty
+                    if len(new_signal) > 0:
+                        new_signals.append(new_signal)
 
-                # For each matching index, trim the corresponding signal
-                for idx in matching_indices:
-                    trimmed_signal = self.signals[idx][start_idx:end_idx]
-                    new_signals.append(trimmed_signal)
+                        # Copy current features and add the 'segment' column
+                        new_feature_row = self.features.iloc[idx].copy()
+                        new_feature_row['segment'] = segment_name
+                        new_features.append(new_feature_row)
 
-                    # Copy existing feature row for this signal and add a new entry for the segment
-                    new_feature_row = self.features.loc[idx].copy()
-                    new_feature_row['segment'] = segment_label  # Add/update the 'segment' column with the segment label
-                    new_features.append(new_feature_row)
-
-        # Update the signals and features with trimmed signals and new feature rows
-        self.signals.extend(new_signals)  # Extend the existing signals with new trimmed signals
-        new_features_df = pd.DataFrame(new_features)
-        self.features = pd.concat([self.features, new_features_df]).reset_index(drop=True)
+        # Replace the original signals and features with the new segmented ones
+        self.signals = new_signals
+        self.features = pd.DataFrame(new_features).reset_index(drop=True)
 
 
     def add_features(self, new_features, feature_names=None):

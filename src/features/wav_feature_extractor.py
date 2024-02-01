@@ -4,7 +4,7 @@ from pyAudioAnalysis import MidTermFeatures as aF
 from scipy import stats
 
 class WavFeatureExtractor:
-    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True, temporal: bool = True, statistical: bool = True):
+    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True, temporal: bool = True, statistical: bool = True, window_size: float= 1, hop_length: float= 1):
         """
         Initialize the WavFeatureExtractor with default parameters.
 
@@ -14,10 +14,12 @@ class WavFeatureExtractor:
         :param statistical: Whether to extract statistical features.
         """
         self.sample_rate = sample_rate
-        self.lib_mfccs = lib_mfccs
-        self.pyau_mfccs = pyau_mfccs
         self.temporal = temporal
         self.statistical = statistical
+        self.lib_mfccs = lib_mfccs
+        self.pyau_mfccs = pyau_mfccs
+        self.window_size = window_size
+        self.hop_length = hop_length
 
     @staticmethod
     def add_feature(name, func, waveform_data, feature_values, feature_labels):
@@ -305,7 +307,7 @@ class WavFeatureExtractor:
 
         return feature_values, feature_labels
 
-    def extract_librosa_mfcc_features(self, waveform, n_mfcc: int = 13, n_fft: int = 2000, hop_length: int = 500):
+    def extract_librosa_mfcc_features(self, waveform, n_mfcc: int = 13):
         """
         Extracts MFCC features from an audio waveform, computes the average and standard 
         deviation of each MFCC across time, and returns these statistics along with their labels.
@@ -319,6 +321,9 @@ class WavFeatureExtractor:
         # Ensure the waveform is in floating point format for calculations
         if not np.issubdtype(waveform.dtype, np.floating):
             waveform = waveform.astype(np.float64)
+
+        n_fft= round(self.sample_rate*self.window_size)
+        hop_length= round(self.sample_rate*self.hop_length)
 
         # Extract lib_mfccs from the waveform
         lib_mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, 
@@ -338,15 +343,15 @@ class WavFeatureExtractor:
 
         return mfccs_features, feature_labels
     
-    def extract_pyaudio_mfcc_features(self, waveform, fs, window_size, hop_length):
+    def extract_pyaudio_mfcc_features(self, waveform, st_window_size= 0.05, st_hop_length= 0.05):
         # Get mid-term (segment) feature statistics and respective short-term features
         mt, st, mt_n = aF.mid_feature_extraction(
             waveform,             # The audio signal (time-domain waveform)
-            fs,                   # Sample rate of the audio signal (in Hz)
-            len(waveform),        # Mid-term window size (in samples)
-            len(waveform),        # Mid-term window step (in samples)
-            window_size * fs,     # Short-term window size (in samples)
-            hop_length * fs       # Short-term window step (in samples)
+            self.sample_rate,                   # Sample rate of the audio signal (in Hz)
+            round(self.sample_rate*self.window_size),        # Mid-term window size (in samples)
+            round(self.sample_rate*self.hop_length),        # Mid-term window step (in samples)
+            st_window_size,     # Short-term window size (in samples)
+            st_hop_length       # Short-term window step (in samples)
         )
 
         feature_names = []
