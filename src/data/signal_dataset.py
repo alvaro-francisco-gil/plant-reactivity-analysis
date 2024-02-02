@@ -1,11 +1,10 @@
 from torch.utils.data import Dataset
-import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import pickle
 import copy
 
-import data.preparation_eurythmy_data as ped
 
 class SignalDataset(Dataset):
     def __init__(self, signals, features, target_column=None, feature_labels=None, sample_rate: int = 10000):
@@ -22,7 +21,7 @@ class SignalDataset(Dataset):
 
         if not isinstance(features, pd.DataFrame):
             if feature_labels is None and isinstance(features, list) and len(features) > 0:
-                feature_labels = [f'feature_{i}' for i in range(len(features[0]))]
+                feature_labels = [f"feature_{i}" for i in range(len(features[0]))]
             features = pd.DataFrame(features, columns=feature_labels)
 
         features.reset_index(drop=True, inplace=True)
@@ -31,17 +30,13 @@ class SignalDataset(Dataset):
         self.features = features
         self.sample_rate = sample_rate
         self.target_column = target_column
-        self.standardization = None
 
-
-    # Dataset methods
-
+    # Torch Dataset methods
     def __len__(self):
         """
         Return the number of items in the dataset.
         """
         return len(self.signals)
-
 
     def __getitem__(self, idx):
         """
@@ -60,49 +55,12 @@ class SignalDataset(Dataset):
         else:
             return signal, features
 
-    
-    # Getters and setters for signals
-    @property
-    def signals(self):
-        return self._signals
-
-    @signals.setter
-    def signals(self, value):
-        self._signals = value
-
-    # Getter and Setter for features
-    @property
-    def features(self):
-        return self._features
-
-    @features.setter
-    def features(self, value):
-        self._features = value
-
-    # Getter and Setter for target_column
-    @property
-    def target_column(self):
-        return self._target_column
-
-    @target_column.setter
-    def target_column(self, value):
-        self._target_column = value
-
-    # Getter and Setter for sample_rate
-    @property
-    def sample_rate(self):
-        return self._sample_rate
-
-    @sample_rate.setter
-    def sample_rate(self, value):
-        self._sample_rate = value
-
     # Getter for indexes
     @property
     def indexes(self):
         return self.features.index.tolist()
 
-    # Standardization methods        
+    # Standardization methods
     @staticmethod
     def standardize_wave_peak(waveform):
         """
@@ -118,7 +76,7 @@ class SignalDataset(Dataset):
         normalized_waveform = waveform_without_dc / np.max(np.abs(waveform_without_dc))
 
         return normalized_waveform
-    
+
     @staticmethod
     def standardize_wave_zscore(waveform):
         """
@@ -130,11 +88,11 @@ class SignalDataset(Dataset):
         Returns:
         - standardized_waveform (np.ndarray): The standardized waveform using z-scores.
         """
-        
+
         mean = np.mean(waveform)
         std_dev = np.std(waveform)
 
-        if std_dev!=0:
+        if std_dev != 0:
             waveform = (waveform - mean) / std_dev
 
         return waveform
@@ -150,7 +108,7 @@ class SignalDataset(Dataset):
         Returns:
         - standardized_waveform (np.ndarray): The standardized waveform using Min-Max scaling.
         """
-        
+
         min_val = np.min(waveform)
         max_val = np.max(waveform)
 
@@ -165,9 +123,9 @@ class SignalDataset(Dataset):
         :param method: The standardization method to use ('peak', 'zscore', 'min_max').
         """
         standardization_methods = {
-            'peak': self.standardize_wave_peak,
-            'zscore': self.standardize_wave_zscore,
-            'min_max': self.standardize_wave_min_max
+            "peak": self.standardize_wave_peak,
+            "zscore": self.standardize_wave_zscore,
+            "min_max": self.standardize_wave_min_max,
         }
 
         if method not in standardization_methods:
@@ -189,15 +147,15 @@ class SignalDataset(Dataset):
             plt.figure(figsize=(10, 4))
             time_axis = np.arange(len(signal)) / self.sample_rate  # Convert sample indices to time in seconds
             plt.plot(time_axis, signal)
-            
+
             # Create a title string from the features
-            feature_info = ', '.join([f'{col}: {val}' for col, val in zip(self.features.columns, features_row[1])])
-            plt.title(f'Features: {feature_info}')
-            plt.xlabel('Time (seconds)')
-            plt.ylabel('Amplitude')
+            feature_info = ", ".join([f"{col}: {val}" for col, val in zip(self.features.columns, features_row[1])])
+            plt.title(f"Features: {feature_info}")
+            plt.xlabel("Time (seconds)")
+            plt.ylabel("Amplitude")
             plt.show()
 
-    # Manipulation
+    # Signal manipulation
     def segment_signals_by_duration(self, segment_duration):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
@@ -215,11 +173,11 @@ class SignalDataset(Dataset):
                 if end <= len(signal):
                     segment = signal[start:end]
                     new_signals.append(segment)
-                    
+
                     # Include the corresponding features for each segment
                     segment_features = features_row[1].copy()
                     initial_second = start / self.sample_rate
-                    segment_features['initial_second'] = initial_second
+                    segment_features["initial_second"] = initial_second
                     new_features.append(segment_features)
 
         # Update signals and create a new DataFrame with reset index
@@ -245,32 +203,12 @@ class SignalDataset(Dataset):
 
                         # Copy current features and add the 'segment' column
                         new_feature_row = self.features.iloc[idx].copy()
-                        new_feature_row['segment'] = segment_name
+                        new_feature_row["segment"] = segment_name
                         new_features.append(new_feature_row)
 
         # Replace the original signals and features with the new segmented ones
         self.signals = new_signals
         self.features = pd.DataFrame(new_features).reset_index(drop=True)
-
-
-    def add_features(self, new_features, feature_names=None):
-        """
-        Add new features to the dataset.
-
-        :param new_features: A 2D list or array of new features to add to the dataset, 
-                            where each inner list/array represents the features for one signal.
-        :param feature_names: A list of names for the new features. If None, default names are assigned.
-        """
-        assert len(new_features) == len(self.features), "The length of new_features must match the existing features."
-
-        # Convert new_features to a DataFrame if it's not already one
-        if not isinstance(new_features, pd.DataFrame):
-            if feature_names is None:
-                feature_names = [f'new_feature_{i}' for i in range(len(new_features[0]))]
-            new_features = pd.DataFrame(new_features, columns=feature_names)
-
-        # Add new features to the existing DataFrame
-        self.features = pd.concat([self.features, new_features], axis=1)
 
     def remove_constant_signals(self):
         """
@@ -286,35 +224,6 @@ class SignalDataset(Dataset):
 
         self.signals = non_constant_signals
         self.features = pd.DataFrame(non_constant_features, columns=self.features.columns)
-
-    # Save and load
-    def save(self, file_path):
-        """
-        Saves the dataset to a file.
-
-        :param file_path: Path to the file where the dataset will be saved.
-        """
-        with open(file_path, 'wb') as file:
-            pickle.dump(self, file)
-
-    @classmethod
-    def load(cls, file_path):
-        """
-        Loads the dataset from a file.
-
-        :param file_path: Path to the file from which the dataset will be loaded.
-        :return: Loaded FeaturesDataset instance.
-        """
-        with open(file_path, 'rb') as file:
-            return pickle.load(file)
-        
-    def copy(self):
-        """
-        Creates a deep copy of the instance.
-
-        :return: A deep copy of the instance.
-        """
-        return copy.deepcopy(self)
 
     def average_signal(self, indexes):
         """
@@ -340,4 +249,51 @@ class SignalDataset(Dataset):
         avg_signal = [x / len(indexes) for x in sum_signal]
         return avg_signal
 
+    # Features manipulation
+    def add_features(self, new_features, feature_names=None):
+        """
+        Add new features to the dataset.
 
+        :param new_features: A 2D list or array of new features to add to the dataset,
+                            where each inner list/array represents the features for one signal.
+        :param feature_names: A list of names for the new features. If None, default names are assigned.
+        """
+        assert len(new_features) == len(self.features), "The length of new_features must match the existing features."
+
+        # Convert new_features to a DataFrame if it's not already one
+        if not isinstance(new_features, pd.DataFrame):
+            if feature_names is None:
+                feature_names = [f"new_feature_{i}" for i in range(len(new_features[0]))]
+            new_features = pd.DataFrame(new_features, columns=feature_names)
+
+        # Add new features to the existing DataFrame
+        self.features = pd.concat([self.features, new_features], axis=1)
+
+    def copy(self):
+        """
+        Creates a deep copy of the instance.
+
+        :return: A deep copy of the instance.
+        """
+        return copy.deepcopy(self)
+
+    # Save and load
+    def save(self, file_path):
+        """
+        Saves the dataset to a file.
+
+        :param file_path: Path to the file where the dataset will be saved.
+        """
+        with open(file_path, "wb") as file:
+            pickle.dump(self, file)
+
+    @classmethod
+    def load(cls, file_path):
+        """
+        Loads the dataset from a file.
+
+        :param file_path: Path to the file from which the dataset will be loaded.
+        :return: Loaded FeaturesDataset instance.
+        """
+        with open(file_path, "rb") as file:
+            return pickle.load(file)

@@ -1,8 +1,8 @@
 import os
 import librosa
 
-class WavDataReader:
 
+class WavDataReader:
     def __init__(self, folder: str = None, filename: str = None, sample_rate: int = 10000, extract_key: bool = True):
         """
         Initialize the ElectricalWaveDataReader instance.
@@ -13,7 +13,7 @@ class WavDataReader:
         """
         self.sample_rate = sample_rate
         self.data = {}
-        self.extract_key= extract_key
+        self.extract_key = extract_key
 
         if folder:
             self.read_wav_files_in_folder(folder)
@@ -21,8 +21,6 @@ class WavDataReader:
             self.read_single_wav_file(filename)
 
         print(f"Total WAV files read: {len(self.data)}")
-
-        
 
     @staticmethod
     def extract_key_from_filename(filename: str):
@@ -32,7 +30,7 @@ class WavDataReader:
         :param filename: The filename to extract the key from.
         :return: The unique identifier (id_measurement).
         """
-        key = int(filename.split('_')[1][1:])
+        key = int(filename.split("_")[1][1:])
         return key
 
     def read_wav_files_in_folder(self, folder: str):
@@ -43,7 +41,7 @@ class WavDataReader:
         :param folder: The folder that contains the WAV files.
         """
         for filename in os.listdir(folder):
-            if filename.endswith('.wav'):
+            if filename.endswith(".wav"):
                 # Construct the full path to the file
                 file_path = os.path.join(folder, filename)
 
@@ -76,7 +74,7 @@ class WavDataReader:
         :return: A dictionary of audio data where keys are filenames.
         """
         return self.data
-    
+
     def get_values(self):
         """
         Returns a list of the audio data values.
@@ -92,7 +90,7 @@ class WavDataReader:
         :return: A list of keys.
         """
         return list(self.data.keys())
-    
+
     def get_values_and_keys(self):
         """
         Returns a list of the values and a list of the keys.
@@ -100,8 +98,8 @@ class WavDataReader:
         :return: A list of values, a list of keys.
         """
 
-        return list(self.data.values()),list(self.data.keys())
-    
+        return list(self.data.values()), list(self.data.keys())
+
     def get_sample_rate(self):
         """
         Returns the sample rate

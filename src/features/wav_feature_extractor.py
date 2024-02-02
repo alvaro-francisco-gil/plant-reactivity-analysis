@@ -3,9 +3,18 @@ import numpy as np
 from pyAudioAnalysis import MidTermFeatures as aF
 from scipy import stats
 
+
 class WavFeatureExtractor:
-    def __init__(self, sample_rate: int = 10000, lib_mfccs: bool = True, pyau_mfccs: bool = True,
-                 temporal: bool = True, statistical: bool = True, window_size: float= 1, hop_length: float= 1):
+    def __init__(
+        self,
+        sample_rate: int = 10000,
+        lib_mfccs: bool = True,
+        pyau_mfccs: bool = True,
+        temporal: bool = True,
+        statistical: bool = True,
+        window_size: float = 1,
+        hop_length: float = 1,
+    ):
         """
         Initialize the WavFeatureExtractor with default parameters.
 
@@ -22,106 +31,8 @@ class WavFeatureExtractor:
         self.window_size = window_size
         self.hop_length = hop_length
 
-    @staticmethod
-    def add_feature(name, func, waveform_data, feature_values, feature_labels):
-        """
-        Adds a calculated feature to the feature lists, handling exceptions.
-
-        :param name: Name of the feature.
-        :param func: Function to calculate the feature.
-        :param waveform_data: Data to be used in the feature calculation.
-        :param feature_values: List to append the feature value.
-        :param feature_labels: List to append the feature name.
-        """
-        try:
-            feature_values.append(func(waveform_data))
-        except Exception:
-            feature_values.append(np.nan)
-        feature_labels.append(name)
-
-    # Standardization Methods
-        
-    @staticmethod
-    def standardize_wave_peak(waveform):
-        """
-        Standardizes an audio waveform by removing the DC offset and normalizing its peak.
-
-        :param waveform: An array representing the audio waveform.
-        :return: The standardized waveform.
-        """
-
-        dc_offset = np.mean(waveform)
-        waveform_without_dc = waveform - dc_offset
-
-        normalized_waveform = waveform_without_dc / np.max(np.abs(waveform_without_dc))
-
-        return normalized_waveform
-    
-    @staticmethod
-    def standardize_wave_zscore(waveform):
-        """
-        Standardizes a waveform using z-score transformation.
-
-        Parameters:
-        - waveform (np.ndarray): The input waveform to be standardized.
-
-        Returns:
-        - standardized_waveform (np.ndarray): The standardized waveform using z-scores.
-        """
-        
-        mean = np.mean(waveform)
-        std_dev = np.std(waveform)
-
-        if std_dev!=0:
-            waveform = (waveform - mean) / std_dev
-
-        return waveform
-
-    @staticmethod
-    def standardize_wave_min_max(waveform):
-        """
-        Standardizes a waveform using Min-Max scaling.
-
-        Parameters:
-        - waveform (np.ndarray): The input waveform to be standardized.
-
-        Returns:
-        - standardized_waveform (np.ndarray): The standardized waveform using Min-Max scaling.
-        """
-        
-        min_val = np.min(waveform)
-        max_val = np.max(waveform)
-
-        standardized_waveform = (waveform - min_val) / (max_val - min_val)
-
-        return standardized_waveform
-    
-    def standardize_waveform(self, waveform, method):
-        """
-        Standardizes the waveform using the specified method.
-
-        Parameters:
-        - waveform (np.ndarray): The input waveform to be standardized.
-        - method (str): The standardization method to use ('peak', 'zscore', 'min_max').
-
-        Returns:
-        - standardized_waveform (np.ndarray): The standardized waveform.
-        """
-        if method == 'peak':
-            self.standarization = 'peak'
-            return self.standardize_wave_peak(waveform)
-        elif method == 'zscore':
-            self.standarization = 'zscore'
-            return self.standardize_wave_zscore(waveform)
-        elif method == 'min_max':
-            self.standarization = 'min_max'
-            return self.standardize_wave_min_max(waveform)
-        else:
-            raise ValueError("Invalid standardization method. Choose 'peak', 'zscore', or 'min_max'.")
-        
     # Statistical Features
-        
-    @staticmethod    
+    @staticmethod
     def hjorth(X, D=None):
         """
         From: https://github.com/forrestbao/pyeeg/blob/master/pyeeg/hjorth_mobility_complexity.py
@@ -143,16 +54,14 @@ class WavFeatureExtractor:
 
         n = len(X)
 
-        M2 = float(sum(D ** 2)) / n
+        M2 = float(sum(D**2)) / n
         TP = sum(np.array(X) ** 2)
         M4 = 0
         for i in range(1, len(D)):
             M4 += (D[i] - D[i - 1]) ** 2
         M4 = M4 / n
 
-        return np.sqrt(M2 / TP), np.sqrt(
-            float(M4) * TP / M2 / M2
-        )  # Hjorth Mobility and Complexity
+        return np.sqrt(M2 / TP), np.sqrt(float(M4) * TP / M2 / M2)  # Hjorth Mobility and Complexity
 
     @staticmethod
     def dfa(X, Ave=None, L=None):
@@ -172,14 +81,12 @@ class WavFeatureExtractor:
         Y -= Ave
 
         if L is None:
-            L = np.floor(len(X) * 1 / (
-                2 ** np.array(list(range(4, int(np.log2(len(X))) - 4))))
-            )
+            L = np.floor(len(X) * 1 / (2 ** np.array(list(range(4, int(np.log2(len(X))) - 4)))))
 
         F = np.zeros(len(L))  # F(n) of different given box length n
 
         for i in range(0, len(L)):
-            n = int(L[i])                        # for each box length L[i]
+            n = int(L[i])  # for each box length L[i]
             if n == 0:
                 print("time series is too short while the box length is too big")
                 print("abort")
@@ -190,15 +97,13 @@ class WavFeatureExtractor:
                     # coordinates of time in the box
                     c = np.vstack([c, np.ones(n)]).T
                     # the value of data in the box
-                    y = Y[j:j + n]
+                    y = Y[j : j + n]
                     # add residue in this box
                     F[i] += np.linalg.lstsq(c, y, rcond=None)[1]
-            F[i] /= ((len(X) / n) * n)
+            F[i] /= (len(X) / n) * n
         F = np.sqrt(F)
 
-        Alpha = np.linalg.lstsq(np.vstack(
-            [np.log(L), np.ones(len(L))]
-        ).T, np.log(F), rcond=None)[0][0]
+        Alpha = np.linalg.lstsq(np.vstack([np.log(L), np.ones(len(L))]).T, np.log(F), rcond=None)[0][0]
 
         return Alpha
 
@@ -213,23 +118,28 @@ class WavFeatureExtractor:
         try:
             hj = self.hjorth(waveform_data)
             feature_values.extend([hj[0], hj[1]])
-            feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
+            feature_labels.extend(["hjorth_mobility", "hjorth_complexity"])
         except Exception:
             feature_values.extend([np.nan, np.nan])
-            feature_labels.extend(['hjorth_mobility', 'hjorth_complexity'])
+            feature_labels.extend(["hjorth_mobility", "hjorth_complexity"])
 
         # Standard statistical features
         statistical_features = [
-            ('mean', np.mean), ('variance', np.var), ('standard_deviation', np.std), 
-            ('interquartile_range', stats.iqr), ('skewness', stats.skew), 
-            ('kurtosis', stats.kurtosis), ('dfa', self.dfa)
+            ("mean", np.mean),
+            ("variance", np.var),
+            ("standard_deviation", np.std),
+            ("interquartile_range", stats.iqr),
+            ("skewness", stats.skew),
+            ("kurtosis", stats.kurtosis),
+            ("dfa", self.dfa),
         ]
 
         for name, func in statistical_features:
             self.add_feature(name, func, waveform_data, feature_values, feature_labels)
 
         return feature_values, feature_labels
-    
+
+    # Temporal Features
     @staticmethod
     def extract_flatness_ratio(array, threshold):
         """
@@ -249,8 +159,8 @@ class WavFeatureExtractor:
         """
 
         current_value = None  # Tracks the current value being compared
-        current_length = 0    # Tracks the length of the current sequence of identical values
-        total_length = 0      # Accumulates the total length of all 'flat' sequences
+        current_length = 0  # Tracks the length of the current sequence of identical values
+        total_length = 0  # Accumulates the total length of all 'flat' sequences
 
         for value in array:
             if value == current_value:
@@ -281,93 +191,120 @@ class WavFeatureExtractor:
         feature_values = []
         feature_labels = []
 
-        # Call the static method 'add_feature' for each feature
-        self.add_feature('zero_crossing_rate', 
-                                                lambda x: np.sum(np.diff(np.sign(x)) != 0) / (2 * len(x)), 
-                                                waveform, feature_values, feature_labels)
-        self.add_feature('root_mean_square_energy', 
-                                                lambda x: np.sqrt(np.mean(x ** 2)), 
-                                                waveform, feature_values, feature_labels)
-        self.add_feature('slope_sign_changes_ratio', 
-                                                lambda x: (np.sum(np.diff(np.sign(np.diff(x))) != 0))/len(x), 
-                                                waveform, feature_values, feature_labels)
-        
-        # More temporal features to add
-        self.add_feature('duration_seconds', 
-                                                lambda x: len(x) / self.sample_rate, 
-                                                waveform, feature_values, feature_labels)
-    
-        # Flatness Ratios
+        self.add_feature(
+            "zero_crossing_rate",
+            lambda x: np.sum(np.diff(np.sign(x)) != 0) / (2 * len(x)),
+            waveform,
+            feature_values,
+            feature_labels,
+        )
+        self.add_feature(
+            "root_mean_square_energy", lambda x: np.sqrt(np.mean(x**2)), waveform, feature_values, feature_labels
+        )
+        self.add_feature(
+            "slope_sign_changes_ratio",
+            lambda x: (np.sum(np.diff(np.sign(np.diff(x))) != 0)) / len(x),
+            waveform,
+            feature_values,
+            feature_labels,
+        )
+
+        self.add_feature(
+            "duration_seconds", lambda x: len(x) / self.sample_rate, waveform, feature_values, feature_labels
+        )
+
         if flatness_ratio:
             flatness_ratios = [10000, 5000, 1000, 500, 100]
             for ratio in flatness_ratios:
-                self.add_feature(f'flatness_ratio_{ratio}', 
-                                                        lambda x: self.extract_flatness_ratio(x, ratio), 
-                                                        waveform, feature_values, feature_labels)
-        
+                self.add_feature(
+                    f"flatness_ratio_{ratio}",
+                    lambda x: self.extract_flatness_ratio(x, ratio),
+                    waveform,
+                    feature_values,
+                    feature_labels,
+                )
 
         return feature_values, feature_labels
 
+    # Frequency Features
     def extract_librosa_mfcc_features(self, waveform, n_mfcc: int = 13):
         """
-        Extracts MFCC features from an audio waveform, computes the average and standard 
+        Extracts MFCC features from an audio waveform, computes the average and standard
         deviation of each MFCC across time, and returns these statistics along with their labels.
 
         :param waveform: A numpy array representing the audio waveform.
         :param n_mfcc: Number of lib_mfccs to return.
         :param n_fft: Length of the FFT window.
         :param hop_length: Number of samples between successive frames.
-        :return: A tuple containing two elements: a numpy array of the MFCC statistics and a list of corresponding labels.
+        :return: Two elements tuple: a numpy array of the MFCC statistics and a list of corresponding labels.
         """
         # Ensure the waveform is in floating point format for calculations
         if not np.issubdtype(waveform.dtype, np.floating):
             waveform = waveform.astype(np.float64)
 
-        n_fft= round(self.sample_rate*self.window_size)
-        hop_length= round(self.sample_rate*self.hop_length)
+        n_fft = round(self.sample_rate * self.window_size)
+        hop_length = round(self.sample_rate * self.hop_length)
 
         # Extract lib_mfccs from the waveform
-        lib_mfccs = librosa.feature.mfcc(y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, 
-                                     n_fft=n_fft, hop_length=hop_length)
+        lib_mfccs = librosa.feature.mfcc(
+            y=waveform, sr=self.sample_rate, n_mfcc=n_mfcc, n_fft=n_fft, hop_length=hop_length
+        )
 
         # Calculate the average and standard deviation of each MFCC
         mfccs_avg = np.mean(lib_mfccs, axis=1)
         mfccs_std = np.std(lib_mfccs, axis=1)
 
         # Generate labels for each MFCC statistic
-        avg_labels = [f'lib_mfcc_{i+1}_avg' for i in range(n_mfcc)]
-        std_labels = [f'lib_mfcc_{i+1}_std' for i in range(n_mfcc)]
+        avg_labels = [f"lib_mfcc_{i+1}_avg" for i in range(n_mfcc)]
+        std_labels = [f"lib_mfcc_{i+1}_std" for i in range(n_mfcc)]
 
         # Concatenate the averaged and standard deviation features and their labels
         mfccs_features = np.concatenate((mfccs_avg, mfccs_std))
         feature_labels = avg_labels + std_labels
 
         return mfccs_features, feature_labels
-    
-    def extract_pyaudio_mfcc_features(self, waveform, st_window_size= 0.05, st_hop_length= 0.05):
-        
+
+    def extract_pyaudio_mfcc_features(self, waveform, st_window_size=0.05, st_hop_length=0.05):
         mt, st, mt_n = aF.mid_feature_extraction(
-            waveform,             # The audio signal (time-domain waveform)
-            self.sample_rate,                   # Sample rate of the audio signal (in Hz)
-            round(self.sample_rate*self.window_size),        # Mid-term window size (in samples)
-            round(self.sample_rate*self.hop_length),        # Mid-term window step (in samples)
-            round(self.sample_rate*st_window_size),     # Short-term window size (in samples)
-            round(self.sample_rate*st_hop_length)       # Short-term window step (in samples)
+            waveform,  # The audio signal (time-domain waveform)
+            self.sample_rate,  # Sample rate of the audio signal (in Hz)
+            round(self.sample_rate * self.window_size),  # Mid-term window size (in samples)
+            round(self.sample_rate * self.hop_length),  # Mid-term window step (in samples)
+            round(self.sample_rate * st_window_size),  # Short-term window size (in samples)
+            round(self.sample_rate * st_hop_length),  # Short-term window step (in samples)
         )
 
         return mt, mt_n
-    
+
+    # Feature Extraction
+    @staticmethod
+    def add_feature(name, func, waveform_data, feature_values, feature_labels):
+        """
+        Adds a calculated feature to the feature lists, handling exceptions.
+
+        :param name: Name of the feature.
+        :param func: Function to calculate the feature.
+        :param waveform_data: Data to be used in the feature calculation.
+        :param feature_values: List to append the feature value.
+        :param feature_labels: List to append the feature name.
+        """
+        try:
+            feature_values.append(func(waveform_data))
+        except Exception:
+            feature_values.append(np.nan)
+        feature_labels.append(name)
+
     def extract_features_waveform(self, waveform):
         """
         Extracts all features using the specified feature extraction methods and
         combines them into a single feature list along with their labels.
 
         :param waveform: A numpy array representing the audio waveform.
-        :return: Two lists - one containing all the feature values and another containing all the corresponding feature labels.
+        :return: Two lists - all the feature values and all the corresponding feature labels.
         """
         feature_values = []
         feature_labels = []
-        
+
         if self.lib_mfccs:
             # Extract MFCC features
             mfcc_values, mfcc_labels = self.extract_librosa_mfcc_features(waveform)

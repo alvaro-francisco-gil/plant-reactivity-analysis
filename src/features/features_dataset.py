@@ -1,8 +1,7 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, Subset, DataLoader
+from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
-from scipy import stats
 import numpy as np
 import pickle
 import copy
@@ -12,9 +11,15 @@ from data.signal_dataset import SignalDataset
 from features.wav_feature_extractor import WavFeatureExtractor
 import data.preparation_eurythmy_data as ped
 
+
 class FeaturesDataset(Dataset):
-    def __init__(self, features: pd.DataFrame= None, label_columns: list= None,
-                 variable_columns: list= None, target_column: str=None):
+    def __init__(
+        self,
+        features: pd.DataFrame = None,
+        label_columns: list = None,
+        variable_columns: list = None,
+        target_column: str = None,
+    ):
         """
         Initialize the FeaturesDataset instance.
         """
@@ -53,14 +58,14 @@ class FeaturesDataset(Dataset):
         Returns a DataFrame with only the objective (variable) columns.
         """
         return self._features[self.variable_columns]
-    
+
     @property
     def label_features(self):
         """
         Returns a DataFrame with only the label columns.
         """
         return self._features[self.label_columns]
-    
+
     def get_targets(self):
         """
         Returns the target column values as a list.
@@ -70,8 +75,8 @@ class FeaturesDataset(Dataset):
         if self._target_column_name not in self._features.columns:
             raise ValueError(f"Target column '{self._target_column_name}' not found in features DataFrame.")
         return self._features[self._target_column_name].tolist()
-   
-       # Dataset heritage
+
+    # Dataset heritage
     def __len__(self):
         """
         Returns the number of samples in the dataset.
@@ -79,7 +84,7 @@ class FeaturesDataset(Dataset):
         :return: Integer representing the number of samples.
         """
         return len(self.features)
-    
+
     def __getitem__(self, idx):
         # Extract features and target for the given index
         variable_feature = self.features.loc[idx, self.variable_columns].values
@@ -94,7 +99,7 @@ class FeaturesDataset(Dataset):
         target_tensor = torch.tensor(target, dtype=torch.long)
 
         return feature_tensor, target_tensor
-    
+
     # Data Handling
 
     def add_target_column(self, column_name, target_values):
@@ -175,7 +180,9 @@ class FeaturesDataset(Dataset):
         :param columns_to_keep: List of variable column names to be kept.
         """
         # Ensure that all columns to keep are in the current variable columns
-        assert all(column in self.variable_columns for column in columns_to_keep), "All columns to keep must be in the current variable columns."
+        assert all(
+            column in self.variable_columns for column in columns_to_keep
+        ), "All columns to keep must be in the current variable columns."
 
         # Determine the variable columns that need to be dropped
         columns_to_drop = [col for col in self.variable_columns if col not in columns_to_keep]
@@ -198,7 +205,7 @@ class FeaturesDataset(Dataset):
 
         # Drop the unwanted indexes
         self.features.drop(indexes_to_drop, inplace=True)
-        self.features.reset_index(drop=True, inplace=True)    
+        self.features.reset_index(drop=True, inplace=True)
 
     def add_variable_feature(self, column_name, column_data):
         """
@@ -218,7 +225,7 @@ class FeaturesDataset(Dataset):
         self.variable_columns.append(column_name)
 
     # Data processing
-    def normalize_features(self, method='zscore'):
+    def normalize_features(self, method="zscore"):
         """
         Normalizes the variable features in the dataset and returns normalization parameters.
 
@@ -227,11 +234,15 @@ class FeaturesDataset(Dataset):
         :return: A dictionary containing the normalization parameters used.
         """
         # Work only with variable columns that are numeric
-        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns and col != self._target_column_name]
+        variable_numeric_cols = [
+            col
+            for col in self.variable_columns
+            if col in self.features.select_dtypes(include="number").columns and col != self._target_column_name
+        ]
 
         normalization_params = {}
 
-        if method == 'zscore':
+        if method == "zscore":
             # Z-score normalization
             mean = self.features[variable_numeric_cols].mean()
             std = self.features[variable_numeric_cols].std()
@@ -239,15 +250,17 @@ class FeaturesDataset(Dataset):
             self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - mean) / std
             print("Variable features were properly normalized using 'zscore' method.")
 
-            normalization_params = {'mean': mean, 'std': std}
-        elif method == 'minmax':
+            normalization_params = {"mean": mean, "std": std}
+        elif method == "minmax":
             # Min-max normalization
             min_val = self.features[variable_numeric_cols].min()
             max_val = self.features[variable_numeric_cols].max()
-            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (max_val - min_val)
+            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (
+                max_val - min_val
+            )
             print("Variable features were properly normalized using 'minmax' method.")
 
-            normalization_params = {'min': min_val, 'max': max_val}
+            normalization_params = {"min": min_val, "max": max_val}
         else:
             raise ValueError("Unsupported normalization method. Choose 'zscore' or 'minmax'.")
 
@@ -262,22 +275,28 @@ class FeaturesDataset(Dataset):
                                      or 'min' and 'max' for 'minmax' method.
         """
         # Work only with variable columns that are numeric
-        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns and col != self._target_column_name]
-        if 'mean' in normalization_params and 'std' in normalization_params:
+        variable_numeric_cols = [
+            col
+            for col in self.variable_columns
+            if col in self.features.select_dtypes(include="number").columns and col != self._target_column_name
+        ]
+        if "mean" in normalization_params and "std" in normalization_params:
             # Apply z-score normalization
-            mean = normalization_params['mean']
-            std = normalization_params['std']
+            mean = normalization_params["mean"]
+            std = normalization_params["std"]
             self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - mean) / std
             print("Applied z-score normalization.")
-        elif 'min' in normalization_params and 'max' in normalization_params:
+        elif "min" in normalization_params and "max" in normalization_params:
             # Apply min-max normalization
-            min_val = normalization_params['min']
-            max_val = normalization_params['max']
-            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (max_val - min_val)
+            min_val = normalization_params["min"]
+            max_val = normalization_params["max"]
+            self.features[variable_numeric_cols] = (self.features[variable_numeric_cols] - min_val) / (
+                max_val - min_val
+            )
             print("Applied min-max normalization.")
         else:
-            raise ValueError("Invalid normalization parameters. Please provide 'mean' and 'std' for z-score, or 'min' and 'max' for min-max.")
-        
+            raise ValueError("Invalid normalization parameters.")
+
     def treat_outliers(self, iqr_multiplier=1.5):
         """
         Treats outliers in the dataset by replacing them with the limit value in the direction of the outlier.
@@ -286,7 +305,9 @@ class FeaturesDataset(Dataset):
         :param iqr_multiplier: The multiplier for the IQR to determine outliers. Defaults to 1.5.
         """
         # Work only with variable columns that are numeric
-        variable_numeric_cols = [col for col in self.variable_columns if col in self.features.select_dtypes(include='number').columns]
+        variable_numeric_cols = [
+            col for col in self.variable_columns if col in self.features.select_dtypes(include="number").columns
+        ]
 
         for feature in variable_numeric_cols:
             Q1 = self.features[feature].quantile(0.25)
@@ -354,7 +375,7 @@ class FeaturesDataset(Dataset):
 
         return variable_cols
 
-    #####?
+    # ???????????????????????????
     def get_variable_features_loader(self, targets, batch_size=32, shuffle=True):
         """
         Returns a DataLoader for the variable features and targets of the dataset.
@@ -376,7 +397,7 @@ class FeaturesDataset(Dataset):
             def __getitem__(self, idx):
                 # Convert features and targets to PyTorch tensors
                 feature_tensor = torch.tensor(self.features.iloc[idx].values, dtype=torch.float32)
-                target_tensor = torch.tensor(self.targets[idx], dtype=torch.long)  # Change to torch.long for classification tasks
+                target_tensor = torch.tensor(self.targets[idx], dtype=torch.long)
                 return feature_tensor, target_tensor
 
         # Create an instance of the inner dataset class with targets
@@ -394,12 +415,18 @@ class FeaturesDataset(Dataset):
         :return: Modified FeaturesDataset instance.
         """
         if drop_constant:
-            indexes_constant_value = self.features[self.features['flatness_ratio_100'] == 1].index.tolist()
+            indexes_constant_value = self.features[self.features["flatness_ratio_100"] == 1].index.tolist()
             self.drop_rows(indexes_constant_value)
 
         if drop_flatness:
-            columns_to_drop = ['duration_seconds', 'flatness_ratio_10000', 'flatness_ratio_5000', 
-                               'flatness_ratio_1000', 'flatness_ratio_500', 'flatness_ratio_100']
+            columns_to_drop = [
+                "duration_seconds",
+                "flatness_ratio_10000",
+                "flatness_ratio_5000",
+                "flatness_ratio_1000",
+                "flatness_ratio_500",
+                "flatness_ratio_100",
+            ]
             self.drop_columns(columns_to_drop=columns_to_drop)
 
     def process_features(self, corr_threshold=0.8):
@@ -409,13 +436,20 @@ class FeaturesDataset(Dataset):
         :param corr_threshold: The correlation threshold for feature reduction in reduce_features.
         """
         # Remove specific columns
-        columns=['duration_seconds', 'flatness_ratio_10000','flatness_ratio_5000', 'flatness_ratio_1000', 'flatness_ratio_500','flatness_ratio_100',]
+        columns = [
+            "duration_seconds",
+            "flatness_ratio_10000",
+            "flatness_ratio_5000",
+            "flatness_ratio_1000",
+            "flatness_ratio_500",
+            "flatness_ratio_100",
+        ]
         self.drop_columns(columns_to_drop=columns)
 
         # Reduce features based on statistical tests and correlation
         self.reduce_features(self.targets, corr_threshold=corr_threshold)
 
-        self.processed= True
+        self.processed = True
 
     # Save and load
     def save(self, file_path):
@@ -424,7 +458,7 @@ class FeaturesDataset(Dataset):
 
         :param file_path: Path to the file where the dataset will be saved.
         """
-        with open(file_path, 'wb') as file:
+        with open(file_path, "wb") as file:
             pickle.dump(self, file)
 
     @classmethod
@@ -435,9 +469,9 @@ class FeaturesDataset(Dataset):
         :param file_path: Path to the file from which the dataset will be loaded.
         :return: Loaded FeaturesDataset instance.
         """
-        with open(file_path, 'rb') as file:
+        with open(file_path, "rb") as file:
             return pickle.load(file)
-        
+
     def save_to_csv(self, file_path):
         """
         Saves the features DataFrame to a CSV file.
@@ -459,9 +493,9 @@ class FeaturesDataset(Dataset):
         """
         features = pd.read_csv(file_path)
         return cls(features, label_columns, variable_columns, target_column)
-    
+
     @classmethod
-    def from_signal_dataset(cls, signal_dataset, feature_extractor):
+    def from_signal_dataset(cls, signal_dataset: SignalDataset, feature_extractor: WavFeatureExtractor):
         """
         Class method to initialize FeaturesDataset instance from SignalDataset and WavFeatureExtractor.
         """
@@ -476,15 +510,13 @@ class FeaturesDataset(Dataset):
 
         return cls(features, label_columns, var_columns, target_column)
 
-    # ... rest of your class methods ...
-    
     def copy(self):
         """
         Creates a deep copy of the instance.
 
         :return: A deep copy of the instance.
         """
-        return copy.deepcopy(self)   
+        return copy.deepcopy(self)
 
     def get_subset(self, indexes):
         """
@@ -499,7 +531,7 @@ class FeaturesDataset(Dataset):
         # Keep only the rows corresponding to the provided indexes and reset the index
         subset_dataset.features = subset_dataset.features.iloc[indexes].reset_index(drop=True)
 
-        return subset_dataset 
+        return subset_dataset
 
     def return_subset_given_research_question(self, rq_number):
         """
@@ -510,17 +542,19 @@ class FeaturesDataset(Dataset):
         """
         # Get indexes and targets based on the research question
         indexes, targets = ped.get_indexes_and_targets_by_rq(rq_number, self.label_features)
-        
+
         # Create a deep copy of the current instance
         subset_dataset = self.copy()
 
         # Apply modifications to the copy
         subset_dataset.keep_only_specified_rows(indexes)
-        subset_dataset.add_target_column('target', targets)
+        subset_dataset.add_target_column("target", targets)
 
         return subset_dataset
-    
-    def split_dataset(self, split_by_wav: bool, test_size: float = 0.2, val_size: float = 0.2, random_state: bool = True):
+
+    def split_dataset(
+        self, split_by_wav: bool, test_size: float = 0.2, val_size: float = 0.2, random_state: bool = True
+    ):
         if split_by_wav:
             # Split based on wav files
             train_indexes, val_indexes, test_indexes = ped.get_train_val_test_indexes_by_wav()
@@ -535,7 +569,9 @@ class FeaturesDataset(Dataset):
                 # Perform a train-test split and then a train-validation split
                 train_indexes, test_indexes = train_test_split(indexes, test_size=test_size, random_state=random_state)
                 relative_val_size = val_size / (1 - test_size)
-                train_indexes, val_indexes = train_test_split(train_indexes, test_size=relative_val_size, random_state=random_state)
+                train_indexes, val_indexes = train_test_split(
+                    train_indexes, test_size=relative_val_size, random_state=random_state
+                )
 
         # Create datasets for each split using the indexes
         train_dataset = self.get_subset(train_indexes)
@@ -551,8 +587,8 @@ class FeaturesDataset(Dataset):
         target_values = self.get_targets()
         count = Counter(target_values)
         total = sum(count.values())
-        
+
         print("Counts and Percentages:")
         for key, value in count.items():
             percentage = (value / total) * 100
-            print(f"Class {key}: Count = {value}, Percentage = {percentage:.2f}%")    
+            print(f"Class {key}: Count = {value}, Percentage = {percentage:.2f}%")
