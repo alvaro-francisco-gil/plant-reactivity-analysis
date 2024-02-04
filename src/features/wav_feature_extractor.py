@@ -97,7 +97,7 @@ class WavFeatureExtractor:
                     # coordinates of time in the box
                     c = np.vstack([c, np.ones(n)]).T
                     # the value of data in the box
-                    y = Y[j : j + n]
+                    y = Y[j: j + n]
                     # add residue in this box
                     F[i] += np.linalg.lstsq(c, y, rcond=None)[1]
             F[i] /= (len(X) / n) * n

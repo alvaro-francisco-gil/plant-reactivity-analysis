@@ -6,6 +6,8 @@ import numpy as np
 import pickle
 import copy
 from collections import Counter
+from scipy.stats import f_oneway, ttest_ind
+from typing import List, Tuple
 
 from data.signal_dataset import SignalDataset
 from features.wav_feature_extractor import WavFeatureExtractor
@@ -76,6 +78,29 @@ class FeaturesDataset(Dataset):
             raise ValueError(f"Target column '{self._target_column_name}' not found in features DataFrame.")
         return self._features[self._target_column_name].tolist()
 
+    def rename_column(self, initial_name: str, final_name: str):
+        """
+        Renames a column in the features DataFrame.
+
+        :param initial_name: The current name of the column.
+        :param final_name: The new name for the column.
+        """
+        # Check if the initial_name exists in the DataFrame
+        if initial_name in self._features.columns:
+            self._features.rename(columns={initial_name: final_name}, inplace=True)
+
+            # Update label_columns and variable_columns if necessary
+            if initial_name in self.label_columns:
+                self.label_columns = [final_name if x == initial_name else x for x in self.label_columns]
+            if initial_name in self.variable_columns:
+                self.variable_columns = [final_name if x == initial_name else x for x in self.variable_columns]
+
+            # Update target_column_name if necessary
+            if self._target_column_name == initial_name:
+                self._target_column_name = final_name
+        else:
+            print(f"Column '{initial_name}' not found in the DataFrame.")
+
     # Dataset heritage
     def __len__(self):
         """
@@ -118,6 +143,8 @@ class FeaturesDataset(Dataset):
         # Update the target column name
         self._target_column_name = column_name
 
+        self.variable_columns.append(column_name)
+
     def drop_columns(self, columns_to_drop):
         """
         Drops specified columns from the features DataFrame.
@@ -153,12 +180,23 @@ class FeaturesDataset(Dataset):
 
     def remove_nan_columns(self):
         """
-        Removes columns from the features DataFrame that contain NaN values.
+        Removes columns from the features DataFrame that contain NaN values,
+        including those listed in the variable_columns list.
         """
+        # Find columns with NaN values
         nan_columns = self.features.columns[self.features.isna().any()].tolist()
-        if nan_columns:
-            print(f"Removing columns with NaN values: {nan_columns}")
-            self.features.drop(columns=nan_columns, inplace=True)
+
+        # Also consider variable_columns for removal if they contain NaN values
+        variable_columns_to_remove = [col for col in self.variable_columns if col in nan_columns]
+
+        # Combine lists while maintaining uniqueness
+        all_columns_to_remove = list(set(nan_columns + variable_columns_to_remove))
+        if all_columns_to_remove:
+            print(f"Removing columns with NaN values: {all_columns_to_remove}")
+            self.features.drop(columns=all_columns_to_remove, inplace=True)
+
+            # Also update the variable_columns list by removing the columns that were dropped
+            self.variable_columns = [col for col in self.variable_columns if col not in all_columns_to_remove]
         else:
             print("No columns with NaN values found.")
 
@@ -337,20 +375,21 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
-    def reduce_features(self, corr_threshold=0.8):
+    def reduce_features_based_on_target(self, corr_threshold: float = 0.8) -> Tuple[List[str], pd.DataFrame]:
         """
-        Reduces features based on correlation, without comparing with the target.
+        Reduces features based on correlation and significance with respect to a discrete target variable.
 
-        :param corr_threshold: Threshold for correlation above which features are considered redundant.
-        :return: List of variable columns after reduction.
+        Args:
+            corr_threshold (float): Threshold for correlation above which features are considered redundant.
+
+        Returns:
+            Tuple[List[str], pd.DataFrame]:
+            List of variable columns after reduction and a DataFrame with class averages and p-values.
         """
-        # Ensure variable_columns are in the DataFrame
-        variable_cols = [col for col in self.variable_columns if col in self.features.columns]
+        variable_cols = [col for col in self.variable_columns if col in self._features.columns]
+        corr_matrix = self._features[variable_cols].corr().abs()
+        feature_stats = pd.DataFrame(columns=self._features[self._target_column_name].unique().tolist() + ['p_value'])
 
-        # Calculate the correlation matrix of the features
-        corr_matrix = self.features[variable_cols].corr().abs()
-
-        # Identify pairs of highly correlated features
         while True:
             correlated_pairs = np.where((corr_matrix > corr_threshold) & (corr_matrix < 1))
             if not any(correlated_pairs[0]):
@@ -359,21 +398,46 @@ class FeaturesDataset(Dataset):
             removal_candidates = set()
             for idx1, idx2 in zip(*correlated_pairs):
                 feature1, feature2 = variable_cols[idx1], variable_cols[idx2]
+                if self.is_binary_target():
+                    pval1 = ttest_ind(self._features[self._features[self._target_column_name] == 0][feature1],
+                                      self._features[self._features[self._target_column_name] == 1][feature1]).pvalue
+                    pval2 = ttest_ind(self._features[self._features[self._target_column_name] == 0][feature2],
+                                      self._features[self._features[self._target_column_name] == 1][feature2]).pvalue
+                else:
+                    groups1 = [group[feature1].values for _, group in self._features.groupby(self._target_column_name)]
+                    groups2 = [group[feature2].values for _, group in self._features.groupby(self._target_column_name)]
+                    pval1 = f_oneway(*groups1).pvalue
+                    pval2 = f_oneway(*groups2).pvalue
 
-                # Decide which feature to remove
-                # You can enhance this logic based on additional criteria if needed
-                removal_candidates.add(feature1)
+                if pval1 > pval2:
+                    removal_candidates.add(feature2)
+                else:
+                    removal_candidates.add(feature1)
 
-            # Remove the redundant features
-            initial_variable_columns_count = len(variable_cols)
-            self.features.drop(columns=list(removal_candidates), inplace=True)
+                # Collect feature stats
+                class_averages1 = self._features.groupby(self._target_column_name)[feature1].mean()
+                class_averages2 = self._features.groupby(self._target_column_name)[feature2].mean()
+                feature_stats.loc[feature1] = class_averages1.tolist() + [pval1]
+                feature_stats.loc[feature2] = class_averages2.tolist() + [pval2]
+
+            self._features.drop(columns=list(removal_candidates), inplace=True)
             variable_cols = [col for col in variable_cols if col not in removal_candidates]
-            corr_matrix = self.features[variable_cols].corr().abs()
+            corr_matrix = self._features[variable_cols].corr().abs()
 
-        print(f"Reduced variable features from {initial_variable_columns_count} to {len(variable_cols)}.")
+        print(f"Reduced variable features from initial count to {len(variable_cols)}.")
         self.variable_columns = variable_cols
 
-        return variable_cols
+        feature_stats = feature_stats.sort_values(by='p_value', ascending=True)
+
+        return variable_cols, feature_stats
+
+    def is_binary_target(self):
+        """
+        Check if the target variable is binary.
+
+        :return: True if the target variable has two unique values, False otherwise.
+        """
+        return self._features[self._target_column_name].nunique() == 2
 
     # ???????????????????????????
     def get_variable_features_loader(self, targets, batch_size=32, shuffle=True):
@@ -406,7 +470,7 @@ class FeaturesDataset(Dataset):
         # Create and return the DataLoader
         return DataLoader(variable_features_dataset, batch_size=batch_size, shuffle=shuffle)
 
-    def prepare_dataset(self, drop_constant: bool, drop_flatness: bool):
+    def prepare_dataset(self, drop_constant: bool, drop_flatness_columns: bool, drop_nan_columns: bool):
         """
         Prepares the dataset by dropping constant value rows and/or specified columns.
 
@@ -418,7 +482,7 @@ class FeaturesDataset(Dataset):
             indexes_constant_value = self.features[self.features["flatness_ratio_100"] == 1].index.tolist()
             self.drop_rows(indexes_constant_value)
 
-        if drop_flatness:
+        if drop_flatness_columns:
             columns_to_drop = [
                 "duration_seconds",
                 "flatness_ratio_10000",
@@ -428,6 +492,9 @@ class FeaturesDataset(Dataset):
                 "flatness_ratio_100",
             ]
             self.drop_columns(columns_to_drop=columns_to_drop)
+
+        if drop_nan_columns:
+            self.remove_nan_columns()
 
     def process_features(self, corr_threshold=0.8):
         """
@@ -592,3 +659,23 @@ class FeaturesDataset(Dataset):
         for key, value in count.items():
             percentage = (value / total) * 100
             print(f"Class {key}: Count = {value}, Percentage = {percentage:.2f}%")
+
+    def replace_ndarray_with_mean(self):
+        """
+        Automatically checks each column in the features DataFrame.
+        If any column has np.ndarray values, it replaces them with their mean.
+        """
+        for col in self._features.columns:
+            self._features[col] = self._features[col].apply(self._replace_element_with_mean)
+
+    @staticmethod
+    def _replace_element_with_mean(x):
+        """
+        If the element is an np.ndarray, replaces it with its mean. Otherwise, returns the element unchanged.
+
+        :param x: The element to be checked and possibly replaced.
+        :return: Mean of the np.ndarray or the element itself if not an np.ndarray.
+        """
+        if isinstance(x, np.ndarray):
+            return np.mean(x)
+        return x

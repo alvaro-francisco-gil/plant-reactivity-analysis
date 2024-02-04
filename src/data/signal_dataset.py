@@ -156,7 +156,7 @@ class SignalDataset(Dataset):
             plt.show()
 
     # Signal manipulation
-    def segment_signals_by_duration(self, segment_duration):
+    def segment_signals_by_duration(self, segment_duration, new_column_name):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
         including the start of each segment as a new feature. Resets the index of the features DataFrame.
@@ -177,7 +177,7 @@ class SignalDataset(Dataset):
                     # Include the corresponding features for each segment
                     segment_features = features_row[1].copy()
                     initial_second = start / self.sample_rate
-                    segment_features["initial_second"] = initial_second
+                    segment_features[new_column_name] = initial_second
                     new_features.append(segment_features)
 
         # Update signals and create a new DataFrame with reset index
