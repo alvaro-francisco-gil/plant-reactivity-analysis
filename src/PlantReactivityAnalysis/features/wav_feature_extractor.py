@@ -271,10 +271,16 @@ class WavFeatureExtractor:
             round(self.sample_rate * self.window_size),  # Mid-term window size (in samples)
             round(self.sample_rate * self.hop_length),  # Mid-term window step (in samples)
             round(self.sample_rate * st_window_size),  # Short-term window size (in samples)
-            round(self.sample_rate * st_hop_length),  # Short-term window step (in samples)
+            round(self.sample_rate * st_hop_length),  # Short-term window step (in samples),
         )
 
-        return mt, mt_n
+        # Transpose the mid-term features matrix to have features as rows and windows as columns
+        mt_transposed = np.transpose(mt)
+
+        # Perform long-term averaging of mid-term features to get a single feature vector
+        mid_term_features_avg = mt_transposed.mean(axis=0)
+
+        return mid_term_features_avg, mt_n
 
     # Feature Extraction
     @staticmethod

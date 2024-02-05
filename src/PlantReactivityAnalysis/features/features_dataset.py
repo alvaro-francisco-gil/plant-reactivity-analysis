@@ -47,7 +47,7 @@ class FeaturesDataset(Dataset):
         """
         return self.features[self.label_columns]
 
-    # Dataset heritage
+    # Torch Dataset heritage
     def __len__(self):
         """
         Returns the number of samples in the dataset.

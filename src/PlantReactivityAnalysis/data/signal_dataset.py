@@ -31,7 +31,7 @@ class SignalDataset(Dataset):
         self.sample_rate = sample_rate
         self.target_column = target_column
 
-    # Torch Dataset methods
+    # Torch Dataset heritage
     def __len__(self):
         """
         Return the number of items in the dataset.
@@ -54,11 +54,6 @@ class SignalDataset(Dataset):
             return signal, target
         else:
             return signal, features
-
-    # Getter for indexes
-    @property
-    def indexes(self):
-        return self.features.index.tolist()
 
     # Standardization methods
     @staticmethod
@@ -156,7 +151,7 @@ class SignalDataset(Dataset):
             plt.show()
 
     # Signal manipulation
-    def segment_signals_by_duration(self, segment_duration, new_column_name):
+    def segment_signals_by_duration(self, segment_duration, segment_column_name='initial_second'):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
         including the start of each segment as a new feature. Resets the index of the features DataFrame.
@@ -177,14 +172,14 @@ class SignalDataset(Dataset):
                     # Include the corresponding features for each segment
                     segment_features = features_row[1].copy()
                     initial_second = start / self.sample_rate
-                    segment_features[new_column_name] = initial_second
+                    segment_features[segment_column_name] = initial_second
                     new_features.append(segment_features)
 
         # Update signals and create a new DataFrame with reset index
         self.signals = new_signals
         self.features = pd.DataFrame(new_features).reset_index(drop=True)
 
-    def segment_signals_by_dict(self, id_column, segments_dict):
+    def segment_signals_by_dict(self, id_column, segments_dict, segment_column_name):
         # Initialize new lists for segmented signals and their features
         new_signals = []
         new_features = []
@@ -203,7 +198,7 @@ class SignalDataset(Dataset):
 
                         # Copy current features and add the 'segment' column
                         new_feature_row = self.features.iloc[idx].copy()
-                        new_feature_row["segment"] = segment_name
+                        new_feature_row[segment_column_name] = segment_name
                         new_features.append(new_feature_row)
 
         # Replace the original signals and features with the new segmented ones
