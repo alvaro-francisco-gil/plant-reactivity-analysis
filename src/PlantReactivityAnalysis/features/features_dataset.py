@@ -9,9 +9,9 @@ from collections import Counter
 from scipy.stats import f_oneway, ttest_ind
 from typing import List, Tuple
 
-from data.signal_dataset import SignalDataset
-from features.wav_feature_extractor import WavFeatureExtractor
-import data.preparation_eurythmy_data as ped
+from PlantReactivityAnalysis.data.signal_dataset import SignalDataset
+from PlantReactivityAnalysis.features.wav_feature_extractor import WavFeatureExtractor
+from PlantReactivityAnalysis.data import preparation_eurythmy_data as ped
 
 
 class FeaturesDataset(Dataset):

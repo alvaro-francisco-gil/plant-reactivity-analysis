@@ -8,6 +8,7 @@ from dotenv import find_dotenv, load_dotenv
 import pandas as pd
 # (import other necessary libraries or modules)
 
+
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True))
 @click.argument('output_filepath', type=click.Path())
@@ -34,6 +35,7 @@ def main(input_filepath, output_filepath):
 
     except Exception as e:
         logger.error(f"Error processing data: {e}")
+
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

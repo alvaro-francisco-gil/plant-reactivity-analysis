@@ -5,6 +5,7 @@ import torch.optim as optim
 
 from models.abstract_classifier import AbstractClassifier
 
+
 class FullyConnectedClassifier(nn.Module):
     def __init__(self, input_size, output_size, parameters):
         super().__init__()

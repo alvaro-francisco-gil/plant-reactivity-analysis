@@ -82,3 +82,25 @@ class Experiment:
             return GaussianNB
         else:
             raise ValueError(f"Unsupported model: {model_name}")
+
+    def print_best_result(self, metric='f1'):
+        if not self.results:
+            print("No results to display.")
+            return
+
+        # Define a dictionary to map metric names to their positions in the results
+        metric_indices = {'f1': 2, 'accuracy': 3, 'precision': 4, 'recall': 5}
+
+        # Check if the metric name is valid
+        if metric not in metric_indices:
+            print(f"Metric '{metric}' is not valid. Choose from {list(metric_indices.keys())}.")
+            return
+
+        # Find the result with the best value for the chosen metric
+        best_result = max(self.results, key=lambda x: x[metric_indices[metric]])
+
+        # Print or return the best result
+        print(f"Best {metric} result:")
+        print(f"Model: {best_result[0]}, Parameter: {best_result[1]}, "
+              f"F1: {best_result[2]}, Accuracy: {best_result[3]}, "
+              f"Precision: {best_result[4]}, Recall: {best_result[5]}")

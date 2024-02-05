@@ -1,6 +1,7 @@
 import itertools
 import pandas as pd
 
+
 class HyperparameterTuner:
     def __init__(self, model_class, param_grid, train_loader, val_loader, num_epochs, input_size, output_size):
         """
@@ -28,7 +29,7 @@ class HyperparameterTuner:
         for params in self.param_grid_values:
             # Create a parameter dictionary for hyperparameters
             param_dict = dict(zip(self.param_grid_keys, params))
-            
+
             # Print the parameters for the current model
             print("Training model with parameters:", param_dict)
 
