@@ -140,7 +140,7 @@ class FeaturesDataset(Dataset):
         return subset_dataset
 
     def split_dataset(
-        self, split_by_wav: bool, test_size: float = 0.2, val_size: float = 0.2, random_state: bool = True
+        self, split_by_wav: bool, test_size: float = 0.2, val_size: float = 0.2, random_state: int = None
     ):
         if split_by_wav:
             # Split based on wav files

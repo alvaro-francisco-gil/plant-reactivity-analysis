@@ -487,6 +487,27 @@ def get_targets_rq4_eurythmy_performance_habituation(df):
     return indexes, updated_classes
 
 
+def get_targets_rq5_plant_detection(df):
+    """
+    RQ4: Is this wave from a saldo, tomato or basil?
+    Extracts the second character of 'eurythmy_letter' and returns indexes and the characters list.
+    Filters out rows where 'num_eurythmy' is 0 or 'eurythmy_letter' is None.
+
+    :param df: DataFrame containing the 'eurythmy_letter' and 'num_eurythmy' columns.
+    :return: A tuple containing the indexes list and the list of second characters.
+    """
+    # Create a mapping dictionary
+    df['plant'].replace({'salad': 0, 'tomato': 1, 'basil': 2}, inplace=True)
+
+    # Extract values into a list
+    plant_values = df['plant'].tolist()
+
+    # Store the indexes of the filtered rows
+    indexes = df.index.tolist()
+
+    return indexes, plant_values
+
+
 def get_indexes_and_targets_by_rq(rq_number, df):
     """
     Delegates to one of the four functions based on the RQ number.
@@ -505,6 +526,8 @@ def get_indexes_and_targets_by_rq(rq_number, df):
         return get_targets_rq3_eurythmy_habituation(df)
     elif rq_number == 4:
         return get_targets_rq4_eurythmy_performance_habituation(df)
+    elif rq_number == 5:
+        return get_targets_rq5_plant_detection(df)
     else:
         raise ValueError("Invalid RQ number. Please provide a number between 1 and 4.")
 
