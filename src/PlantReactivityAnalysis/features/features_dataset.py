@@ -243,7 +243,7 @@ class FeaturesDataset(Dataset):
         :return: Modified FeaturesDataset instance.
         """
         if drop_constant:
-            indexes_constant_value = self.features[self.features["flatness_ratio_100"] == 1].index.tolist()
+            indexes_constant_value = self.features[self.features["flatness_ratio_10000"] == 1].index.tolist()
             self.drop_rows(indexes_constant_value)
 
         if drop_flatness_columns:

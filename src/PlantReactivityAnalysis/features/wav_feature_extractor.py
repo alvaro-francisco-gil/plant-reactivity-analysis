@@ -157,7 +157,6 @@ class WavFeatureExtractor:
         - If a sequence length exceeds the threshold, it is added to the total 'flat' length.
         - The ratio of the total 'flat' length to the array's length is returned.
         """
-
         current_value = None  # Tracks the current value being compared
         current_length = 0  # Tracks the length of the current sequence of identical values
         total_length = 0  # Accumulates the total length of all 'flat' sequences

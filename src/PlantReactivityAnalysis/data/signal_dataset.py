@@ -150,6 +150,26 @@ class SignalDataset(Dataset):
             plt.ylabel("Amplitude")
             plt.show()
 
+    def display_selected_signals(self, indexes):
+        """
+        Displays signals for given indexes with their corresponding features.
+
+        :param indexes: A list of indexes for the signals to display.
+        """
+        for i in indexes:
+            signal = self.signals[i]
+            features_row = self.features.iloc[i]
+
+            plt.figure(figsize=(10, 4))
+            time_axis = np.arange(len(signal)) / self.sample_rate
+            plt.plot(time_axis, signal)
+
+            feature_info = ", ".join([f"{col}: {val}" for col, val in features_row.items()])
+            plt.title(f"Signal {i} - Features: {feature_info}")
+            plt.xlabel("Time (seconds)")
+            plt.ylabel("Amplitude")
+            plt.show()
+
     # Signal manipulation
     def segment_signals_by_duration(self, segment_duration, segment_column_name='initial_second'):
         """
@@ -243,6 +263,38 @@ class SignalDataset(Dataset):
         # Calculate the average of the signals
         avg_signal = [x / len(indexes) for x in sum_signal]
         return avg_signal
+
+    def calculate_average_duration(self):
+        """
+        Calculate the average duration of all signals in the dataset.
+
+        :return: The average duration of the signals in seconds.
+        """
+        total_duration = 0
+        for signal in self.signals:
+            duration = len(signal) / self.sample_rate
+            total_duration += duration
+        average_duration = total_duration / len(self.signals)
+        return average_duration
+
+    def resample_signals(self, target_duration: float):
+        """
+        Stretch or compress the signals to match a given target duration.
+
+        :param target_duration: The target duration in seconds for all signals.
+        """
+        new_signals = []
+        target_samples = int(target_duration * self.sample_rate)
+
+        for signal in self.signals:
+            current_duration = len(signal) / self.sample_rate
+            current_samples = len(signal)
+            new_time = np.linspace(0, current_duration, num=target_samples)
+            original_time = np.linspace(0, current_duration, num=current_samples)
+            resampled_signal = np.interp(new_time, original_time, signal)
+            new_signals.append(resampled_signal)
+
+        self.signals = new_signals
 
     # Features manipulation
     def add_features(self, new_features, feature_names=None):
