@@ -20,7 +20,7 @@ def collect_all_rqs_data(reduce_variables=True):
 
     # Iterate through each dataset function
     for i, dataset_func in enumerate(dataset_functions, start=1):
-        print("Processing Dataset", i)
+        print("\nPROCESSING DATASET ", i)
         # Call the dataset function
         rqs_data = dataset_func(reduce_variables)
         # Store its return value in the all_data dictionary
@@ -36,6 +36,7 @@ def return_rqs_dataset1(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -49,6 +50,11 @@ def return_rqs_dataset1(reduce_variables=True):
         # Normalize Features
         normalization_params = train_norm_dataset.normalize_features()
         test_norm_dataset.apply_normalization(normalization_params)
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -65,6 +71,7 @@ def return_rqs_dataset2(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -74,6 +81,11 @@ def return_rqs_dataset2(reduce_variables=True):
             train_cols, feat_stats = train_norm_dataset.reduce_features_based_on_target(corr_threshold=0.8)
             test_norm_dataset.keep_only_specified_variable_columns(train_cols)
             print(feat_stats.head(10))
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -90,6 +102,7 @@ def return_rqs_dataset3(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=True, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -103,6 +116,11 @@ def return_rqs_dataset3(reduce_variables=True):
         # Normalize Features
         normalization_params = train_norm_dataset.normalize_features()
         test_norm_dataset.apply_normalization(normalization_params)
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -119,6 +137,7 @@ def return_rqs_dataset4(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=True, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -128,6 +147,11 @@ def return_rqs_dataset4(reduce_variables=True):
             train_cols, feat_stats = train_norm_dataset.reduce_features_based_on_target(corr_threshold=0.8)
             test_norm_dataset.keep_only_specified_variable_columns(train_cols)
             print(feat_stats.head(10))
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -144,6 +168,7 @@ def return_rqs_dataset5(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -157,6 +182,11 @@ def return_rqs_dataset5(reduce_variables=True):
         # Normalize Features
         normalization_params = train_norm_dataset.normalize_features()
         test_norm_dataset.apply_normalization(normalization_params)
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -173,6 +203,7 @@ def return_rqs_dataset6(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -182,6 +213,11 @@ def return_rqs_dataset6(reduce_variables=True):
             train_cols, feat_stats = train_norm_dataset.reduce_features_based_on_target(corr_threshold=0.8)
             test_norm_dataset.keep_only_specified_variable_columns(train_cols)
             print(feat_stats.head(10))
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -198,6 +234,7 @@ def return_rqs_dataset7(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=True, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -211,6 +248,11 @@ def return_rqs_dataset7(reduce_variables=True):
         # Normalize Features
         normalization_params = train_norm_dataset.normalize_features()
         test_norm_dataset.apply_normalization(normalization_params)
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features
@@ -227,6 +269,7 @@ def return_rqs_dataset8(reduce_variables=True):
     norm_dataset.prepare_dataset(drop_constant=True, drop_flatness_columns=True, drop_nan_columns=True)
     rqs = {}
     for x in [1, 2, 5]:
+        print("\n# Research Question: ", x)
         rq = norm_dataset.return_subset_given_research_question(x)
         train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
                                                                     val_size=0, random_state=42)
@@ -236,6 +279,11 @@ def return_rqs_dataset8(reduce_variables=True):
             train_cols, feat_stats = train_norm_dataset.reduce_features_based_on_target(corr_threshold=0.8)
             test_norm_dataset.keep_only_specified_variable_columns(train_cols)
             print(feat_stats.head(10))
+
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
 
         train_df = train_norm_dataset.objective_features
         test_df = test_norm_dataset.objective_features

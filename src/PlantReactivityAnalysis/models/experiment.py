@@ -1,9 +1,14 @@
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
+                             GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
 
 
 class Experiment:
@@ -59,18 +64,23 @@ class Experiment:
             self.run_model_experiment(model_name, params)
 
     def get_model_class(self, model_name):
-        if model_name in ["svm", "svm_rbf"]:
-            return SVC
-        elif model_name == "randomforest":
-            return RandomForestClassifier
-        elif model_name == "gradientboosting":
-            return GradientBoostingClassifier
-        elif model_name == "extratrees":
-            return ExtraTreesClassifier
-        elif model_name == "gaussiannb":
-            return GaussianNB
-        else:
+        model_classes = {
+            "svm": SVC,
+            "svm_rbf": SVC,  # Example, assuming you'd set kernel='rbf' in params if needed
+            "randomforest": RandomForestClassifier,
+            "gradientboosting": GradientBoostingClassifier,
+            "extratrees": ExtraTreesClassifier,
+            "gaussiannb": GaussianNB,
+            "adaboost": AdaBoostClassifier,
+            "logisticregression": LogisticRegression,
+            "kneighbors": KNeighborsClassifier,
+            "lgbm": LGBMClassifier,
+            "xgb": XGBClassifier
+        }
+
+        if model_name not in model_classes:
             raise ValueError(f"Unsupported model: {model_name}")
+        return model_classes[model_name]
 
     def print_best_result(self, metric='f1'):
         if not self.results:
