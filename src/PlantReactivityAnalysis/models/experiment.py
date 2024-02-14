@@ -1,6 +1,9 @@
-from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import ParameterGrid
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
                              GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.svm import SVC
@@ -26,47 +29,49 @@ class Experiment:
         self.class_labels = np.unique(self.train_labels)
         self.results = []
 
-    def get_metrics(self, Y, predictions):
-        f1 = f1_score(Y, predictions, average='macro', zero_division=0)
-        accuracy = accuracy_score(Y, predictions)
-        precision = precision_score(Y, predictions, average='macro', zero_division=0)
-        recall = recall_score(Y, predictions, average='macro', zero_division=0)
-        # print(f'F1 Score: {f1}\nAccuracy: {accuracy}\nPrecision: {precision}\nRecall: {recall}')
+    def get_metrics(self, true_labels, predictions):
+        f1 = f1_score(true_labels, predictions, average='weighted')
+        accuracy = accuracy_score(true_labels, predictions)
+        precision = precision_score(true_labels, predictions, average='weighted')
+        recall = recall_score(true_labels, predictions, average='weighted')
         return f1, accuracy, precision, recall
 
-    def print_confusion_matrix(self, Y, pred):
-        # plt.figure()
-        # cm = confusion_matrix(y_true=Y, y_pred=pred)
-        # print(cm)
-        pass
+    def print_confusion_matrix(self, true_labels, predictions):
+        cm = confusion_matrix(true_labels, predictions)
+        sns.heatmap(cm, annot=True, fmt="d")
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.show()
 
-    def run_model_experiment(self, model_name, params):
-
+    def run_model_experiment(self, model_name, param_combination, print_cm=False):
         model_class = self.get_model_class(model_name)
-        for param in params:
-            # Determine the appropriate parameter for model instantiation
-            if 'n_estimators' in model_class().get_params():
-                model = model_class(n_estimators=param) if param is not None else model_class()
-            elif 'C' in model_class().get_params():
-                model = model_class(C=param) if param is not None else model_class()
-            else:
-                model = model_class()  # For models without these specific parameters
+        model = model_class(**param_combination)
+        model.fit(self.train_features, self.train_labels)
+        predictions = model.predict(self.test_features.to_numpy())
+        f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
 
-            model.fit(self.train_features, self.train_labels)
-            predictions = model.predict(self.test_features)
-            f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
+        if print_cm:
             self.print_confusion_matrix(self.test_labels, predictions)
-            self.results.append([model_name, param, f1, accuracy, precision, recall])
 
-    def run_all_models(self, classifier_par_dict):
+        self.results.append({
+            "model_name": model_name,
+            "parameters": param_combination,
+            "f1": f1,
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall
+        })
+
+    def run_all_models(self, classifier_par_dict, print_cm=False):
         for model_name, params in classifier_par_dict.items():
-            print(f"Running experiments for {model_name}")
-            self.run_model_experiment(model_name, params)
+            for param_combination in ParameterGrid(params):
+                print(f"Running experiments for {model_name} with params: {param_combination}")
+                self.run_model_experiment(model_name, param_combination, print_cm)
 
     def get_model_class(self, model_name):
         model_classes = {
             "svm": SVC,
-            "svm_rbf": SVC,  # Example, assuming you'd set kernel='rbf' in params if needed
+            "svm_rbf": SVC,
             "randomforest": RandomForestClassifier,
             "gradientboosting": GradientBoostingClassifier,
             "extratrees": ExtraTreesClassifier,
@@ -82,56 +87,20 @@ class Experiment:
             raise ValueError(f"Unsupported model: {model_name}")
         return model_classes[model_name]
 
-    def print_best_result(self, metric='f1'):
-        if not self.results:
-            print("No results to display.")
-            return
+    def print_best_result_by_metric(self, metric):
+        best_result = max(self.results, key=lambda x: x[metric])
+        print(f"Best {metric}: {best_result[metric]} for model {best_result['model_name']} \
+              with parameters {best_result['parameters']}")
+        # Print other metrics as well
+        print(f"Other Metrics: Accuracy: {best_result['accuracy']}, Precision: {best_result['precision']}, \
+              Recall: {best_result['recall']}, F1: {best_result['f1']}")
 
-        # Define a dictionary to map metric names to their positions in the results
-        metric_indices = {'f1': 2, 'accuracy': 3, 'precision': 4, 'recall': 5}
-
-        # Check if the metric name is valid
-        if metric not in metric_indices:
-            print(f"Metric '{metric}' is not valid. Choose from {list(metric_indices.keys())}.")
-            return
-
-        # Find the result with the best value for the chosen metric
-        best_result = max(self.results, key=lambda x: x[metric_indices[metric]])
-
-        # Print or return the best result
-        print(f"Best {metric} result:")
-        print(f"Model: {best_result[0]}, Parameter: {best_result[1]}, "
-              f"F1: {best_result[2]}, Accuracy: {best_result[3]}, "
-              f"Precision: {best_result[4]}, Recall: {best_result[5]}")
-
-    def print_best_result_by_model(self, metric='f1'):
-        if not self.results:
-            print("No results to display.")
-            return
-
-        # Define a dictionary to map metric names to their positions in the results
-        metric_indices = {'f1': 2, 'accuracy': 3, 'precision': 4, 'recall': 5}
-
-        # Check if the metric name is valid
-        if metric not in metric_indices:
-            print(f"Metric '{metric}' is not valid. Choose from {list(metric_indices.keys())}.")
-            return
-
-        # Group results by model
-        model_groups = {}
-        for result in self.results:
-            model_name = result[0]
-            if model_name not in model_groups:
-                model_groups[model_name] = []
-            model_groups[model_name].append(result)
-
-        # For each model, find the best result based on the specified metric
-        for model_name, results in model_groups.items():
-            best_result = max(results, key=lambda x: x[metric_indices[metric]])
-            print(f"Best {metric} result for {model_name}:")
-            print(f"Parameter: {best_result[1]}, F1: {best_result[2]}, "
-                  f"Accuracy: {best_result[3]}, Precision: {best_result[4]}, "
-                  f"Recall: {best_result[5]}\n")
+    def print_best_result_by_model(self, metric):
+        model_names = set(result['model_name'] for result in self.results)
+        for model_name in model_names:
+            model_results = [result for result in self.results if result['model_name'] == model_name]
+            best_result = max(model_results, key=lambda x: x[metric])
+            print(f"Best {metric} for {model_name}: {best_result[metric]} with parameters {best_result['parameters']}")
 
     def save_results_to_csv(self, filename="experiment_results.csv"):
         if not self.results:
@@ -145,3 +114,14 @@ class Experiment:
         # Save the DataFrame to a CSV file
         results_df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
+
+    @classmethod
+    def from_arrays(cls, train_features, train_labels, test_features, test_labels):
+        # Convert numpy arrays to pandas DataFrames
+        train_df = pd.DataFrame(train_features)
+        test_df = pd.DataFrame(test_features)
+        # Assuming the labels are the last column after concatenating them to the features
+        train_df['label'] = train_labels
+        test_df['label'] = test_labels
+        # Create an instance using the __init__ constructor
+        return cls(train_df, test_df, 'label')
