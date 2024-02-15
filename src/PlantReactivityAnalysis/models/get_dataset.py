@@ -33,7 +33,7 @@ def collect_all_rqs_data(corr_threshold=0, pca_dim=42):
     for dataset_func in dataset_functions:
         func_name = dataset_func.__name__
         # Assuming the identifier is at the end of the function name, following the last underscore
-        identifier = func_name[-1:]
+        identifier = int(func_name[-1:])
         print(f"\nPROCESSING DATASET {identifier}")
         rqs_data = dataset_func(corr_threshold)
         all_data[identifier] = rqs_data
@@ -42,7 +42,7 @@ def collect_all_rqs_data(corr_threshold=0, pca_dim=42):
     for pca_func in pca_functions:
         func_name = pca_func.__name__
         # Extracting identifier
-        identifier = func_name.split('_')[-1]
+        identifier = int(func_name.split('_')[-1])
         print(f"\nPROCESSING DATASET {identifier}")
         rqs_data = pca_func(pca_dim)
         all_data[identifier] = rqs_data
@@ -348,15 +348,15 @@ def return_pca_datasets_9(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -392,15 +392,15 @@ def return_pca_datasets_10(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -439,15 +439,15 @@ def return_pca_datasets_11(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -482,15 +482,15 @@ def return_pca_datasets_12(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -531,15 +531,15 @@ def return_pca_datasets_13(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -576,15 +576,15 @@ def return_pca_datasets_14(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -625,15 +625,15 @@ def return_pca_datasets_15(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
@@ -670,15 +670,15 @@ def return_pca_datasets_16(n_components=None):
 
         # Get train targets and remove column
         train_targets = train_norm_dataset.features[train_norm_dataset.target_column_name]
-        train_norm_dataset.drop_columns([train_norm_dataset.columns.get_loc(train_norm_dataset.target_column_name)])
+        train_norm_dataset.drop_columns([train_norm_dataset.target_column_name])
 
         # Get train targets and remove column
         test_targets = test_norm_dataset.features[test_norm_dataset.target_column_name]
-        test_norm_dataset.drop_columns([test_norm_dataset.columns.get_loc(test_norm_dataset.target_column_name)])
+        test_norm_dataset.drop_columns([test_norm_dataset.target_column_name])
 
         # Fit PCA on training data and transform both training and test data
         pca = PCA(n_components=n_components)
-        train_df = pca.transform(train_norm_dataset.objective_features)
+        train_df = pca.fit_transform(train_norm_dataset.objective_features)
         test_df = pca.transform(test_norm_dataset.objective_features)
 
         rqs[x] = train_df, train_targets, test_df, test_targets
