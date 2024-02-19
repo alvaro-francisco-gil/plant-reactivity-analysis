@@ -107,3 +107,14 @@ class WavDataReader:
         :return: An integer representing sample_rate
         """
         return self.sample_rate
+
+    def get_ordered_signals_and_keys(self):
+        """
+        Returns a list of signals ordered by the keys of self.data.
+        """
+        # Sort the keys of self.data
+        ordered_keys = sorted(self.data.keys())
+
+        # Retrieve and return the signals in the order of sorted keys
+        ordered_signals = [self.data[key] for key in ordered_keys]
+        return ordered_signals, ordered_keys

@@ -207,7 +207,7 @@ class FeaturesDataset(Dataset):
         including those listed in the variable_columns list.
         """
         # Find columns with NaN values
-        nan_columns = self.features.columns[self.features.isna().any()].tolist()
+        nan_columns = self.objective_features.columns[self.objective_features.isna().any()].tolist()
 
         # Also consider variable_columns for removal if they contain NaN values
         variable_columns_to_remove = [col for col in self.variable_columns if col in nan_columns]

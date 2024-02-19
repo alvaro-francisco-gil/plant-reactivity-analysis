@@ -175,6 +175,7 @@ def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder
 
     # Ensure the index of eurythmy_df is of integer type for merging
     eurythmy_df.index = eurythmy_df.index.astype(int)
+    eurythmy_df = eurythmy_df.sort_index()
 
     # Merge the measurements DataFrame with the eurythmy DataFrame
     df = pd.merge(meas_df, eurythmy_df, left_on="id_performance", right_index=True, how="outer")
@@ -270,12 +271,10 @@ def format_letter_dict(original_dict):
                 transformed_entry[base_label] = [None, None]
 
             # Set start or end time
-            if "_start" in label:
-                transformed_entry[base_label][0] = time
-            elif "_end" in label:
-                transformed_entry[base_label][1] = time
+            if not pd.isnull(time):
+                transformed_entry[base_label][0] = int(time) if "_start" in label else transformed_entry[base_label][0]
+                transformed_entry[base_label][1] = int(time) if "_end" in label else transformed_entry[base_label][1]
 
-        # Remove entries with both values as None or np.nan
         transformed_entry = {
             k: v
             for k, v in transformed_entry.items()
