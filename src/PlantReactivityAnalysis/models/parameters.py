@@ -90,3 +90,95 @@ PARAMETER_GRID_NO_SCALING = {
         "max_depth": [3, 6]
     }
 }
+
+
+PARAMETER_GRID_ONE_COMBINATION = {
+    "svm": {
+        "C": [0.1],
+        "kernel": ["linear"],
+        "gamma": ["scale"]
+    },
+    "randomforest": {
+        "n_estimators": [100],
+        "max_depth": [None],
+        "min_samples_split": [2]
+    },
+    "gradientboosting": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "max_depth": [3]
+    },
+    "extratrees": {
+        "n_estimators": [100],
+        "max_depth": [20],
+        "min_samples_split": [2]
+    },
+    "gaussiannb": {
+        "var_smoothing": [1e-09]
+    },
+    "adaboost": {
+        "n_estimators": [50],
+        "learning_rate": [0.1]
+    },
+    "logisticregression": {
+        "C": [0.1],
+        "solver": ["liblinear"]
+    },
+    "kneighbors": {
+        "n_neighbors": [10],
+        "weights": ["uniform"]
+    },
+    "lgbm": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "num_leaves": [31]
+    },
+    "xgb": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "max_depth": [3]
+    }
+}
+
+PARAMETER_GRID_ONE_COMBINATION_NO_SCALING = {
+    "randomforest": {
+        "n_estimators": [100],
+        "max_depth": [None],
+        "min_samples_split": [2]
+    },
+    "gradientboosting": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "max_depth": [3]
+    },
+    "extratrees": {
+        "n_estimators": [100],
+        "max_depth": [20],
+        "min_samples_split": [2]
+    },
+    "gaussiannb": {
+        "var_smoothing": [1e-09]
+    },
+    "adaboost": {
+        "n_estimators": [50],
+        "learning_rate": [0.1]
+    },
+    "logisticregression": {
+        "C": [0.1],
+        "solver": ["liblinear"]
+    },
+    "kneighbors": {
+        "n_neighbors": [10],
+        "weights": ["uniform"]
+    },
+    "lgbm": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "num_leaves": [31]
+    },
+    "xgb": {
+        "n_estimators": [100],
+        "learning_rate": [0.1],
+        "max_depth": [3]
+    }
+}

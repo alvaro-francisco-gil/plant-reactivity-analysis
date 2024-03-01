@@ -102,6 +102,23 @@ class Experiment:
             best_result = max(model_results, key=lambda x: x[metric])
             print(f"Best {metric} for {model_name}: {best_result[metric]} with parameters {best_result['parameters']}")
 
+    def train_and_evaluate_model(self, model_name, param_combination):
+        # Get the model class based on the model name
+        model_class = self.get_model_class(model_name)
+        # Initialize the model with the provided parameters
+        model = model_class(**param_combination)
+        # Train the model on the training data
+        model.fit(self.train_features, self.train_labels)
+        # Make predictions on the test data
+        predictions = model.predict(self.test_features.to_numpy())
+        # Calculate metrics
+        f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
+        # Print confusion matrix
+        self.print_confusion_matrix(self.test_labels, predictions)
+        # Print metrics
+        print(f"Metrics for {model_name} with params {param_combination}:")
+        print(f"F1: {f1}, Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}")
+
     def save_results_to_csv(self, filename="experiment_results.csv"):
         if not self.results:
             print("No results to save.")

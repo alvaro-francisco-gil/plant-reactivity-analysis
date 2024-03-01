@@ -12,15 +12,25 @@ def get_datasets_by_ids(path, rqs, corr_threshold=0, pca_dim=42,
 
         questions_data = {}
         dataset = FeaturesDataset.load(file_path=path)
-        dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
 
         rows_to_drop = []
         if ds_index in [3, 4, 11, 12]:
-            rows_to_drop = []
+            rows_to_drop = dataset.objective_features[(dataset.objective_features['flatness_ratio_1000'] > 0.75) &
+                                                      (dataset.objective_features['flatness_ratio_500'] > 0.85) &
+                                                      (dataset.objective_features['flatness_ratio_100'] > 0.999)]\
+                                                        .index.to_list()
         elif ds_index in [5, 6, 13, 14]:
-            rows_to_drop = []
+            rows_to_drop = dataset.objective_features[(dataset.objective_features['flatness_ratio_1000'] > 0.75) |
+                                                      (dataset.objective_features['flatness_ratio_500'] > 0.85) |
+                                                      (dataset.objective_features['flatness_ratio_100'] > 0.999)]\
+                                                        .index.to_list()
         elif ds_index in [7, 8, 15, 16]:
-            rows_to_drop = []
+            rows_to_drop = dataset.objective_features[(dataset.objective_features['flatness_ratio_1000'] > 0.6) |
+                                                      (dataset.objective_features['flatness_ratio_500'] > 0.85) |
+                                                      (dataset.objective_features['flatness_ratio_100'] > 0.999)]\
+                                                        .index.to_list()
+
+        dataset.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
         dataset.drop_rows(rows_to_drop)
 
         for x in rqs:
