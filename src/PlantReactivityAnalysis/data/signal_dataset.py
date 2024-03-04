@@ -333,6 +333,7 @@ class SignalDataset(Dataset):
         """
         with open(file_path, "wb") as file:
             pickle.dump(self, file)
+        print(f"{len(self.signals)} signals have been saved to {file_path}")
 
     @classmethod
     def load(cls, file_path):
@@ -343,4 +344,6 @@ class SignalDataset(Dataset):
         :return: Loaded FeaturesDataset instance.
         """
         with open(file_path, "rb") as file:
-            return pickle.load(file)
+            dataset = pickle.load(file)
+        print(f"{len(dataset.signals)} signals have been loaded from {file_path}")
+        return dataset

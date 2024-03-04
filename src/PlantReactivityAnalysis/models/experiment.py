@@ -1,8 +1,8 @@
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+# import seaborn as sns
+# import matplotlib.pyplot as plt
 from sklearn.model_selection import ParameterGrid
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
                              GradientBoostingClassifier, AdaBoostClassifier
@@ -38,18 +38,23 @@ class Experiment:
 
     def print_confusion_matrix(self, true_labels, predictions):
         cm = confusion_matrix(true_labels, predictions)
-        sns.heatmap(cm, annot=True, fmt="d")
-        plt.xlabel('Predicted')
-        plt.ylabel('True')
-        plt.show()
+        print(cm)
 
     def run_model_experiment(self, model_name, param_combination, print_cm=False):
         model_class = self.get_model_class(model_name)
+
+        # Ensure 'random_state' is set to a fixed value for all models
+        fixed_random_state = 42  # Fixed random state for reproducibility
+        if 'random_state' in model_class().get_params().keys():
+            # Update 'param_combination' to include the fixed 'random_state',
+            # overriding it if it was previously specified.
+            param_combination['random_state'] = fixed_random_state
+
         model = model_class(**param_combination)
         model.fit(self.train_features, self.train_labels)
         predictions = model.predict(self.test_features.to_numpy())
-        f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
 
+        f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
         if print_cm:
             self.print_confusion_matrix(self.test_labels, predictions)
 
