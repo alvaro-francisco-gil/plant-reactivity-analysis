@@ -11,6 +11,10 @@ INTERIM_DATA_DIR = DATA_DIR / 'interim'
 PROCESSED_DATA_DIR = DATA_DIR / 'processed'
 EXTERNAL_DATA_DIR = DATA_DIR / 'external'
 
+# Raw files
+MEASUREMENTS_INFO = RAW_DATA_DIR / 'measurements_info.csv'
+MEASUREMENTS_EURYTHMY = INTERIM_DATA_DIR / 'measurements_with_eurythmy.csv'
+
 # Model directory
 MODELS_DIR = BASE_DIR / 'models'
 

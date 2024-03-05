@@ -2,6 +2,8 @@ import pandas as pd
 import os
 import numpy as np
 
+import PlantReactivityAnalysis.config as cf
+
 """
 The following functions gather the eurythmy data related to eurythmy from
 text files and combines it with measurements_info.csv
@@ -218,8 +220,7 @@ def return_meas_labels_by_keys(keys):
     :return: A DataFrame with selected columns for the specified keys.
     """
 
-    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
-    df_meas = pd.read_csv(meas_file)
+    df_meas = pd.read_csv(cf.MEASUREMENTS_EURYTHMY)
 
     columns_to_include = ["id_measurement", "id_performance", "datetime", "plant", "generation", "num_eurythmy"]
 
@@ -356,8 +357,7 @@ def return_letter_dictionary(indexes):
     ]
 
     # Read eurythmy letters information
-    meas_file = r"..\data\interim\measurements_with_eurythmy.csv"
-    df_meas = pd.read_csv(meas_file, index_col="id_measurement")
+    df_meas = pd.read_csv(cf.MEASUREMENTS_EURYTHMY, index_col="id_measurement")
 
     # Extract and format letters data
     letter_dictionary = extract_data_by_index_and_columns(df_meas, indexes, letter_columns)

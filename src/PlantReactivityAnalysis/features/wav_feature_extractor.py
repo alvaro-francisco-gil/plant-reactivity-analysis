@@ -8,7 +8,7 @@ class WavFeatureExtractor:
     def __init__(
         self,
         sample_rate: int = 10000,
-        lib_mfccs: bool = True,
+        cepstrals: bool = True,
         pyau_mfccs: bool = True,
         temporal: bool = True,
         statistical: bool = True,
@@ -26,7 +26,7 @@ class WavFeatureExtractor:
         self.sample_rate = sample_rate
         self.temporal = temporal
         self.statistical = statistical
-        self.lib_mfccs = lib_mfccs
+        self.cepstrals = cepstrals
         self.pyau_mfccs = pyau_mfccs
         self.window_size = window_size
         self.hop_length = hop_length
@@ -226,6 +226,51 @@ class WavFeatureExtractor:
         return feature_values, feature_labels
 
     # Frequency Features
+
+    def extract_cepstral_features(self, waveform, n_cepstra: int = 13):
+        """
+        Extracts cepstral features from a waveform, computes the average and standard
+        deviation of each cepstral coefficient across time, and returns these statistics
+        along with their labels.
+
+        :param waveform: A numpy array representing the waveform.
+        :param n_cepstra: Number of cepstral coefficients to return.
+        :return: Two elements tuple: a numpy array of the cepstral statistics and a list of corresponding labels.
+        """
+        # Ensure the waveform is in floating point format for calculations
+        if not np.issubdtype(waveform.dtype, np.floating):
+            waveform = waveform.astype(np.float64)
+
+        n_fft = round(self.sample_rate * self.window_size)
+        hop_length = round(self.sample_rate * self.hop_length)
+
+        # Compute the Short-Time Fourier Transform (STFT)
+        stft = np.abs(librosa.stft(y=waveform, n_fft=n_fft, hop_length=hop_length))
+
+        # Add a small constant before taking the logarithm to avoid log(0)
+        epsilon = 1e-9
+        log_stft = np.log(stft + epsilon)
+
+        # Compute the real cepstrum
+        cepstrum = np.fft.ifft(log_stft).real
+
+        # Take the first n_cepstra coefficients (excluding the zeroth cepstrum)
+        cepstra = cepstrum[1:n_cepstra+1, :]
+
+        # Calculate the average and standard deviation of each cepstral coefficient
+        cepstra_avg = np.mean(cepstra, axis=1)
+        cepstra_std = np.std(cepstra, axis=1)
+
+        # Generate labels for each cepstral coefficient statistic
+        avg_labels = [f"cepstra_{i+1}_avg" for i in range(n_cepstra)]
+        std_labels = [f"cepstra_{i+1}_std" for i in range(n_cepstra)]
+
+        # Concatenate the averaged and standard deviation features and their labels
+        cepstral_features = np.concatenate((cepstra_avg, cepstra_std))
+        feature_labels = avg_labels + std_labels
+
+        return cepstral_features, feature_labels
+
     def extract_librosa_mfcc_features(self, waveform, n_mfcc: int = 13):
         """
         Extracts MFCC features from an audio waveform, computes the average and standard
@@ -310,9 +355,9 @@ class WavFeatureExtractor:
         feature_values = []
         feature_labels = []
 
-        if self.lib_mfccs:
+        if self.cepstrals:
             # Extract MFCC features
-            mfcc_values, mfcc_labels = self.extract_librosa_mfcc_features(waveform)
+            mfcc_values, mfcc_labels = self.extract_cepstral_features(waveform)
             feature_values.extend(mfcc_values)
             feature_labels.extend(mfcc_labels)
 

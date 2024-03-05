@@ -454,6 +454,7 @@ class FeaturesDataset(Dataset):
         """
         with open(file_path, "wb") as file:
             pickle.dump(self, file)
+        print(f"Dataset saved to {file_path}. Shape: {self.features.shape}")
 
     @classmethod
     def load(cls, file_path):
@@ -464,7 +465,9 @@ class FeaturesDataset(Dataset):
         :return: Loaded FeaturesDataset instance.
         """
         with open(file_path, "rb") as file:
-            return pickle.load(file)
+            dataset = pickle.load(file)
+        print(f"Dataset loaded from {file_path}. Shape: {dataset.features.shape}")
+        return dataset
 
     def save_to_csv(self, file_path):
         """
@@ -473,6 +476,7 @@ class FeaturesDataset(Dataset):
         :param file_path: Path to the CSV file where the dataset will be saved.
         """
         self.features.to_csv(file_path, index=False)
+        print(f"Features saved to CSV {file_path}. Shape: {self.features.shape}")
 
     @classmethod
     def load_from_csv(cls, file_path, label_columns, variable_columns, target_column):
@@ -486,6 +490,7 @@ class FeaturesDataset(Dataset):
         :return: Loaded FeaturesDataset instance.
         """
         features = pd.read_csv(file_path)
+        print(f"Features loaded from CSV {file_path}. Shape: {features.shape}")
         return cls(features, label_columns, variable_columns, target_column)
 
     @classmethod
@@ -531,24 +536,3 @@ class FeaturesDataset(Dataset):
         subset_dataset.add_target_column("target", targets)
 
         return subset_dataset
-
-    # Shit to delete
-    def replace_ndarray_with_mean(self):
-        """
-        Automatically checks each column in the features DataFrame.
-        If any column has np.ndarray values, it replaces them with their mean.
-        """
-        for col in self.features.columns:
-            self.features[col] = self.features[col].apply(self._replace_element_with_mean)
-
-    @staticmethod
-    def _replace_element_with_mean(x):
-        """
-        If the element is an np.ndarray, replaces it with its mean. Otherwise, returns the element unchanged.
-
-        :param x: The element to be checked and possibly replaced.
-        :return: Mean of the np.ndarray or the element itself if not an np.ndarray.
-        """
-        if isinstance(x, np.ndarray):
-            return np.mean(x)
-        return x
