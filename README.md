@@ -1,7 +1,7 @@
 Plant-Reactivity-Analysis
 ==============================
 
-The code explores the hypothesis that plants can detect and respond to human movements, especially eurythmy gestures, using plant-based electrical signals. We develop various machine learning models to interpret these signals, treating plants as biosensors for human motion.
+The code explores the hypothesis that plants can detect and respond to human movements, especially eurythmy gestures, using their electrical activity. We develop various machine learning models to interpret these signals, treating plants as biosensors for human motion.
 
 Project Organization
 ------------
@@ -10,7 +10,6 @@ Project Organization
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
     ├── data
-    │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
@@ -19,9 +18,7 @@ Project Organization
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── notebooks          <- Jupyter notebooks. Exploratory Data Analysis.
     │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │

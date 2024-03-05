@@ -11,7 +11,7 @@ from PlantReactivityAnalysis.features.wav_feature_extractor import WavFeatureExt
 from PlantReactivityAnalysis.features.features_dataset import FeaturesDataset
 import PlantReactivityAnalysis.data.preparation_eurythmy_data as ped
 import PlantReactivityAnalysis.config as cf
-import PlantReactivityAnalysis.constants as c
+import PlantReactivityAnalysis.models.parameters as c
 
 # Setup logging
 logger = logging.getLogger(__name__)
