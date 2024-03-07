@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-# import seaborn as sns
-# import matplotlib.pyplot as plt
 from sklearn.model_selection import ParameterGrid
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
                              GradientBoostingClassifier, AdaBoostClassifier
@@ -39,11 +37,7 @@ class Experiment:
         recall = recall_score(true_labels, predictions, average='weighted')
         return f1, accuracy, precision, recall
 
-    def print_confusion_matrix(self, true_labels, predictions):
-        cm = confusion_matrix(true_labels, predictions)
-        print(cm)
-
-    def run_model_experiment(self, model_name, param_combination, print_cm=False):
+    def run_model_experiment(self, model_name, param_combination):
         model_class = self.get_model_class(model_name)
 
         fixed_random_state = 42  # Fixed random state for reproducibility
@@ -52,13 +46,13 @@ class Experiment:
 
         model = model_class(**param_combination)
         model.fit(self.train_features, self.train_labels)
-        predictions = model.predict(self.test_features.to_numpy())
+        if model_name in ['kneighbors', 'xgb']:
+            predictions = model.predict(self.test_features.to_numpy())
+        else:
+            predictions = model.predict(self.test_features)
 
         f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
-
         cm = confusion_matrix(self.test_labels, predictions)
-        if print_cm:
-            print(cm)
 
         # Update to store the model object if this is the best accuracy for the model
         if model_name not in self.best_results or self.best_results[model_name]['accuracy'] < accuracy:
@@ -78,14 +72,15 @@ class Experiment:
             "f1": f1,
             "accuracy": accuracy,
             "precision": precision,
-            "recall": recall
+            "recall": recall,
+            "confusion_matrix": cm
         })
 
-    def run_all_models(self, classifier_par_dict, print_cm=False):
+    def run_all_models(self, classifier_par_dict):
         for model_name, params in classifier_par_dict.items():
             for param_combination in ParameterGrid(params):
                 print(f"Running experiments for {model_name} with params: {param_combination}")
-                self.run_model_experiment(model_name, param_combination, print_cm)
+                self.run_model_experiment(model_name, param_combination)
 
     def get_model_class(self, model_name):
         model_classes = {
@@ -106,21 +101,6 @@ class Experiment:
             raise ValueError(f"Unsupported model: {model_name}")
         return model_classes[model_name]
 
-    def print_best_result_by_metric(self, metric):
-        best_result = max(self.results, key=lambda x: x[metric])
-        print(f"Best {metric}: {best_result[metric]} for model {best_result['model_name']} \
-              with parameters {best_result['parameters']}")
-        # Print other metrics as well
-        print(f"Other Metrics: Accuracy: {best_result['accuracy']}, Precision: {best_result['precision']}, \
-              Recall: {best_result['recall']}, F1: {best_result['f1']}")
-
-    def print_best_result_by_model(self, metric):
-        model_names = set(result['model_name'] for result in self.results)
-        for model_name in model_names:
-            model_results = [result for result in self.results if result['model_name'] == model_name]
-            best_result = max(model_results, key=lambda x: x[metric])
-            print(f"Best {metric} for {model_name}: {best_result[metric]} with parameters {best_result['parameters']}")
-
     def train_and_evaluate_model(self, model_name, param_combination):
         # Get the model class based on the model name
         model_class = self.get_model_class(model_name)
@@ -132,24 +112,34 @@ class Experiment:
         predictions = model.predict(self.test_features.to_numpy())
         # Calculate metrics
         f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
-        # Print confusion matrix
-        self.print_confusion_matrix(self.test_labels, predictions)
         # Print metrics
         print(f"Metrics for {model_name} with params {param_combination}:")
         print(f"F1: {f1}, Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}")
 
-    def save_results_to_csv(self, filename="experiment_results.csv"):
-        if not self.results:
-            print("No results to save.")
-            return
+    def append_results_to_csv(self, file_path, parameters=None):
 
-        # Convert results to a DataFrame
-        results_df = pd.DataFrame(self.results,
-                                  columns=['Model', 'Parameter', 'F1', 'Accuracy', 'Precision', 'Recall'])
+        # Process self.results to possibly include new parameters and expand existing ones
+        expanded_results = []
+        for result in self.results:
+            expanded_row = result.copy()
+            if parameters is not None:
+                expanded_row.update(parameters)
+            expanded_results.append(expanded_row)
 
-        # Save the DataFrame to a CSV file
-        results_df.to_csv(filename, index=False)
-        print(f"Results saved to {filename}")
+        # Convert expanded results to DataFrame
+        df_results = pd.DataFrame(expanded_results)
+
+        try:
+            # If file exists, load it and concatenate, else df_existing will just be df_results
+            df_existing = pd.read_csv(file_path)
+            df_updated = pd.concat([df_existing, df_results], ignore_index=True)
+        except FileNotFoundError:
+            print(f"No existing file found at {file_path}. A new file will be created.")
+            df_updated = df_results
+
+        # Save the updated DataFrame back to the CSV file
+        df_updated.to_csv(file_path, index=False)
+        print(f"Results updated and saved to {file_path}.")
 
     def save_best_models(self, directory="best_models"):
         if not os.path.exists(directory):
@@ -158,7 +148,7 @@ class Experiment:
         for model_name, result in self.best_results.items():
             filename = os.path.join(directory, f"best_{model_name}.joblib")
             joblib.dump(result['model'], filename)
-            print(f"Saved {model_name} model to {filename}")
+            # print(f"Saved {model_name} model to {filename}")
 
     @classmethod
     def from_arrays(cls, train_features, train_labels, test_features, test_labels):

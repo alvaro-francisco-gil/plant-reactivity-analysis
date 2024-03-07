@@ -9,7 +9,8 @@ RAW_DATA_DIR = DATA_DIR / 'raw'
 WAV_FOLDER = RAW_DATA_DIR / 'wav_files'
 INTERIM_DATA_DIR = DATA_DIR / 'interim'
 PROCESSED_DATA_DIR = DATA_DIR / 'processed'
-EXTERNAL_DATA_DIR = DATA_DIR / 'external'
+FEATURES_LETTERS_DIR = PROCESSED_DATA_DIR / 'segmented_by_letters'
+FEATURES_ONE_SEC_DIR = PROCESSED_DATA_DIR / 'segmented_by_one_second'
 
 # Raw files
 MEASUREMENTS_INFO = RAW_DATA_DIR / 'measurements_info.csv'

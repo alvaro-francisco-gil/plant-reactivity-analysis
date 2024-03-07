@@ -203,14 +203,6 @@ def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder
     print(f"The DataFrame has been saved to: {output_file_path}")
 
 
-"""
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-measurements_csv_file= r"../../data/raw/measurements_info.csv"
-txt_folder= r"../../data/raw/txt_files"
-group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder)
-"""
-
-
 def return_meas_labels_by_keys(keys):
     """
     Returns a DataFrame with specified measurements based on given keys,

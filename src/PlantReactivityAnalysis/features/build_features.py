@@ -72,14 +72,14 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
                 # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
                 feat_dataset = FeaturesDataset.from_signal_dataset(norm_signal_dataset, feature_extractor)
                 file_name = "features_dataset_norm_letters_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_norm_letters_dataset_path = cf.PROCESSED_DATA_DIR / file_name
+                feat_norm_letters_dataset_path = cf.FEATURES_LETTERS_DIR / file_name
                 feat_dataset.save(feat_norm_letters_dataset_path)
 
                 # Create and Save Raw Feature Dataset using Extractor and Signal Dataset
                 feat_dataset = FeaturesDataset.from_signal_dataset(raw_signal_dataset, feature_extractor)
                 del raw_signal_dataset
                 file_name = "features_dataset_raw_letters_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_raw_letters_dataset_path = cf.PROCESSED_DATA_DIR / file_name
+                feat_raw_letters_dataset_path = cf.FEATURES_LETTERS_DIR / file_name
                 feat_dataset.save(feat_raw_letters_dataset_path)
                 del feat_dataset
 
@@ -99,14 +99,14 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
                 # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
                 feat_dataset = FeaturesDataset.from_signal_dataset(norm_1s_signal_dataset, feature_extractor)
                 file_name = "features_dataset_norm_1s_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_norm_1s_dataset_path = cf.PROCESSED_DATA_DIR / file_name
+                feat_norm_1s_dataset_path = cf.FEATURES_ONE_SEC_DIR / file_name
                 feat_dataset.save(feat_norm_1s_dataset_path)
 
                 # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
                 feat_dataset = FeaturesDataset.from_signal_dataset(raw_1s_signal_dataset, feature_extractor)
                 del raw_1s_signal_dataset
                 file_name = "features_dataset_raw_1s_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_raw_1s_dataset_path = cf.PROCESSED_DATA_DIR / file_name
+                feat_raw_1s_dataset_path = cf.FEATURES_ONE_SEC_DIR / file_name
                 feat_dataset.save(feat_raw_1s_dataset_path)
                 del feat_dataset
 
