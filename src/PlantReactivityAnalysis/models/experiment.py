@@ -1,6 +1,8 @@
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 import numpy as np
 import pandas as pd
+import joblib
+import os
 # import seaborn as sns
 # import matplotlib.pyplot as plt
 from sklearn.model_selection import ParameterGrid
@@ -28,6 +30,7 @@ class Experiment:
         self.test_labels = test_df[label_column]
         self.class_labels = np.unique(self.train_labels)
         self.results = []
+        self.best_results = {}
 
     def get_metrics(self, true_labels, predictions):
         f1 = f1_score(true_labels, predictions, average='weighted')
@@ -43,11 +46,8 @@ class Experiment:
     def run_model_experiment(self, model_name, param_combination, print_cm=False):
         model_class = self.get_model_class(model_name)
 
-        # Ensure 'random_state' is set to a fixed value for all models
         fixed_random_state = 42  # Fixed random state for reproducibility
         if 'random_state' in model_class().get_params().keys():
-            # Update 'param_combination' to include the fixed 'random_state',
-            # overriding it if it was previously specified.
             param_combination['random_state'] = fixed_random_state
 
         model = model_class(**param_combination)
@@ -55,8 +55,22 @@ class Experiment:
         predictions = model.predict(self.test_features.to_numpy())
 
         f1, accuracy, precision, recall = self.get_metrics(self.test_labels, predictions)
+
+        cm = confusion_matrix(self.test_labels, predictions)
         if print_cm:
-            self.print_confusion_matrix(self.test_labels, predictions)
+            print(cm)
+
+        # Update to store the model object if this is the best accuracy for the model
+        if model_name not in self.best_results or self.best_results[model_name]['accuracy'] < accuracy:
+            self.best_results[model_name] = {
+                "model": model,  # Store the model object
+                "parameters": param_combination,
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "confusion_matrix": cm
+            }
 
         self.results.append({
             "model_name": model_name,
@@ -136,6 +150,15 @@ class Experiment:
         # Save the DataFrame to a CSV file
         results_df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
+
+    def save_best_models(self, directory="best_models"):
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        for model_name, result in self.best_results.items():
+            filename = os.path.join(directory, f"best_{model_name}.joblib")
+            joblib.dump(result['model'], filename)
+            print(f"Saved {model_name} model to {filename}")
 
     @classmethod
     def from_arrays(cls, train_features, train_labels, test_features, test_labels):

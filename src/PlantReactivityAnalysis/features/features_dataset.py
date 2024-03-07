@@ -373,7 +373,8 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
-    def reduce_features_based_on_target(self, corr_threshold: float = 0.8) -> Tuple[List[str], pd.DataFrame]:
+    def reduce_features_based_on_target(self, corr_threshold: float = 0.8,
+                                        print_ttest=False) -> Tuple[List[str], pd.DataFrame]:
         """
         Reduces features based on correlation and significance with respect to a discrete target variable.
 
@@ -426,6 +427,9 @@ class FeaturesDataset(Dataset):
         self.variable_columns = variable_cols
 
         feature_stats = feature_stats.sort_values(by='p_value', ascending=True)
+
+        if print_ttest:
+            print(feature_stats)
 
         return variable_cols, feature_stats
 

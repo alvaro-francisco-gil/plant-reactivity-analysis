@@ -3,9 +3,6 @@ WINDOW_SIZES = [1, 2]
 ONE_SEC_WINDOW_SIZES = [0.1, 0.2]
 RELATIVE_HOP_LENGTHS = [1, 0.5]
 
-# Reduction Parameters
-CORR_TRESHOLDS = [0.7, 0.8]
-
 # Modelling Parameters
 PARAMETER_GRID = {
     "svm": {

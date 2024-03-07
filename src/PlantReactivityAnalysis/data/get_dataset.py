@@ -50,7 +50,8 @@ def get_datasets_by_ids(path, rqs, corr_threshold=0, pca_dim=42,
 
             if ds_index <= 8:
 
-                train_cols, _ = train_norm_dataset.reduce_features_based_on_target(corr_threshold=corr_threshold)
+                train_cols, _ = train_norm_dataset.reduce_features_based_on_target(corr_threshold=corr_threshold,
+                                                                                   print_ttest=True)
                 test_norm_dataset.keep_only_specified_variable_columns(train_cols)
                 print(f"Reduced features based on correlation threshold of {corr_threshold}")
 
