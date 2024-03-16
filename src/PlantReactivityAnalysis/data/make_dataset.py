@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
+import os
 import click
 import logging
 from dotenv import find_dotenv, load_dotenv
 
-# Import your configuration module
-from PlantReactivityAnalysis.config import MEASUREMENTS_INFO, TEXT_EURYTHMY_FILES
+# Import configuration paths
+from PlantReactivityAnalysis.config import (DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR,
+                                            PROCESSED_DATA_DIR, MEASUREMENTS_INFO, TEXT_EURYTHMY_FILES)
 
 import pandas as pd
+
+
+def ensure_data_directories_exist():
+    """Ensures that data directories exist."""
+    for path in [DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR]:
+        os.makedirs(path, exist_ok=True)
 
 
 def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder):
@@ -25,7 +33,10 @@ def main(input_filepath, output_filepath):
     cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
-    logger.info("making final data set from raw data")
+    logger.info("Ensuring data directories exist...")
+    ensure_data_directories_exist()
+
+    logger.info("Making final data set from raw data")
 
     # Use paths from the config module
     measurements_csv_file = MEASUREMENTS_INFO
