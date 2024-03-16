@@ -374,7 +374,7 @@ class FeaturesDataset(Dataset):
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
     def reduce_features_based_on_target(self, corr_threshold: float = 0.8,
-                                        print_ttest=False) -> Tuple[List[str], pd.DataFrame]:
+                                        print_test=False) -> Tuple[List[str], pd.DataFrame]:
         """
         Reduces features based on correlation and significance with respect to a discrete target variable.
 
@@ -428,7 +428,7 @@ class FeaturesDataset(Dataset):
 
         feature_stats = feature_stats.sort_values(by='p_value', ascending=True)
 
-        if print_ttest:
+        if print_test:
             print(feature_stats)
 
         return variable_cols, feature_stats
@@ -522,6 +522,14 @@ class FeaturesDataset(Dataset):
         return copy.deepcopy(self)
 
     # Handle Eurythmy Data
+    def make_final_dataset(self):
+
+        rows_drop = self.objective_features[(self.objective_features['flatness_ratio_1000'] > 0.75) &
+                                            (self.objective_features['flatness_ratio_500'] > 0.85) &
+                                            (self.objective_features['flatness_ratio_100'] > 0.999)].index.to_list()
+        self.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
+        self.drop_rows(rows_drop)
+
     def return_subset_given_research_question(self, rq_number):
         """
         Creates a subset of the dataset based on a specific research question.

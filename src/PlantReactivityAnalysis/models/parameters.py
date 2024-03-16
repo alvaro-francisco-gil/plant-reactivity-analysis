@@ -3,13 +3,11 @@ WINDOW_SIZES = [1, 2]
 ONE_SEC_WINDOW_SIZES = [0.1, 0.2]
 RELATIVE_HOP_LENGTHS = [1, 0.5]
 
+# Featurization Parameters
+CORRELATION_TRESHOLDS = [0.7, 0.8, 0.9]
+
 # Modelling Parameters
-PARAMETER_GRID = {
-    "svm": {
-        "C": [0.1, 1, 10],
-        "kernel": ["linear", "rbf"],
-        "gamma": ["scale", "auto"]
-    },
+PARAMETER_GRID_LETTERS = {
     "randomforest": {
         "n_estimators": [100, 200, 300],
         "max_depth": [None, 10, 20],

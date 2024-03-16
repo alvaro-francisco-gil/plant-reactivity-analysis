@@ -1,21 +1,27 @@
-from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 import numpy as np
 import pandas as pd
 import joblib
 import os
+
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, confusion_matrix
 from sklearn.model_selection import ParameterGrid
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
-                             GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, \
+                             GradientBoostingClassifier, AdaBoostClassifier
+
+
+from PlantReactivityAnalysis.data.get_dataset import get_dataset_by_question
+from PlantReactivityAnalysis.config import FEATURES_LETTERS_DIR, MODELS_DIR
+import PlantReactivityAnalysis.models.parameters as param
 
 
 class Experiment:
-    def __init__(self, train_df, test_df, label_column):
+    def __init__(self, train_df, test_df, label_column='target'):
 
         assert set(train_df.columns) == set(test_df.columns), \
             "Training and testing data must have the same columns"
@@ -160,3 +166,33 @@ class Experiment:
         test_df['label'] = test_labels
         # Create an instance using the __init__ constructor
         return cls(train_df, test_df, 'label')
+
+
+if __name__ == '__main__':
+
+    rqs = [1, 2]
+
+    for ct in param.CORRELATION_TRESHOLDS:
+        for file_path in os.listdir(FEATURES_LETTERS_DIR):
+            file = os.path.splitext(file_path)[0]
+            parts_file = file.split('_')
+            ws = float(parts_file[4][2:])
+            hl = float(parts_file[5][2:])
+            print('--------------------- Processing file: ', file, '----------------------------')
+
+            datasets = get_dataset_by_question(path=FEATURES_LETTERS_DIR/file_path, rqs=rqs, corr_threshold=ct)
+            results = {}
+
+            for rq in rqs:
+                print(f"  Processing RQ {rq}")
+
+                train_df, test_df = datasets[rq]
+                experiment = Experiment(train_df, test_df)
+                experiment.run_all_models(param.PARAMETER_GRID_LETTERS)
+
+                # Store the results and models
+                folder_rq = 'rq' + str(rq)
+                model_folder = 'ws' + str(ws) + '_hl' + str(hl) + '_ct' + str(ct)
+                experiment.save_best_models(directory=MODELS_DIR / folder_rq / model_folder)
+                rows = {'RQ': rq, 'Window Size': ws, 'Hop Length': hl, 'Correlation Treshold': ct}
+                experiment.append_results_to_csv('experiment_results.csv', parameters=rows)

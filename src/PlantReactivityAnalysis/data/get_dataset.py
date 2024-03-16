@@ -2,6 +2,34 @@ from PlantReactivityAnalysis.features.features_dataset import FeaturesDataset
 from sklearn.decomposition import PCA
 
 
+def get_dataset_by_question(path, rqs, corr_threshold=0.8, ttest=False):
+
+    dataset = FeaturesDataset.load(file_path=path)
+    dataset.make_final_dataset()
+    questions_data = {}
+
+    for x in rqs:
+        print("\n# Research Question: ", x)
+        rq = dataset.return_subset_given_research_question(x)
+        train_norm_dataset, _, test_norm_dataset = rq.split_dataset(split_by_wav=False, test_size=0.2,
+                                                                    val_size=0, random_state=42)
+        print('-Train distribution-')
+        train_norm_dataset.print_target_distribution()
+        print('-Test distribution-')
+        test_norm_dataset.print_target_distribution()
+
+        train_cols, _ = train_norm_dataset.reduce_features_based_on_target(corr_threshold=corr_threshold,
+                                                                           print_test=True)
+        test_norm_dataset.keep_only_specified_variable_columns(train_cols)
+        print(f"Reduced features based on correlation threshold of {corr_threshold}")
+
+        train_df = train_norm_dataset.objective_features
+        test_df = test_norm_dataset.objective_features
+        questions_data[x] = train_df, test_df
+
+    return questions_data
+
+
 def get_datasets_by_ids(path, rqs, corr_threshold=0, pca_dim=42,
                         dataset_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]):
 
@@ -76,5 +104,3 @@ def get_datasets_by_ids(path, rqs, corr_threshold=0, pca_dim=42,
         all_data[ds_index] = questions_data
 
     return all_data
-
-

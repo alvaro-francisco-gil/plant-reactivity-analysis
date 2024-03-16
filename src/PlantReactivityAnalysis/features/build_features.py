@@ -112,4 +112,4 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
 
 
 if __name__ == '__main__':
-    create_features_datasets(signals=False, letter_features=False, one_sec_features=True)
+    create_features_datasets(signals=True, letter_features=True, one_sec_features=True)
