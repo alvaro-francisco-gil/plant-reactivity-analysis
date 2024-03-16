@@ -35,13 +35,13 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
 
         # SignalDataset 3: Segmented by Letters (raw)
         signal_dataset = SignalDataset.load(raw_signal_dataset_path)
-        letter_dictionary = ped.return_letter_dictionary(indexes=signal_dataset.features['id_measurement'].tolist())
-        signal_dataset.segment_signals_by_dict('id_measurement', letter_dictionary, 'eurythmy_letter')
+        letter_dictionary = ped.return_letter_dictionary(indexes=signal_dataset.features["id_measurement"].tolist())
+        signal_dataset.segment_signals_by_dict("id_measurement", letter_dictionary, "eurythmy_letter")
         signal_dataset.save(raw_letters_signal_dataset_path)
 
         # SignalDataset 4: Segmented by Letters (normalized)
         signal_dataset = SignalDataset.load(norm_signal_dataset_path)
-        signal_dataset.segment_signals_by_dict('id_measurement', letter_dictionary, 'eurythmy_letter')
+        signal_dataset.segment_signals_by_dict("id_measurement", letter_dictionary, "eurythmy_letter")
         signal_dataset.save(norm_letters_signal_dataset_path)
 
         # SignalDataset 5: Segmented in 1s (raw)
@@ -61,11 +61,18 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
         for ws in p.WINDOW_SIZES:
             for rhl in p.RELATIVE_HOP_LENGTHS:
                 # Calculate hop length
-                hl = ws*rhl
+                hl = ws * rhl
 
                 # Load Extractor and Signal Datasets
-                feature_extractor = WavFeatureExtractor(sample_rate=10000, cepstrals=True, pyau_mfccs=True,
-                                                        temporal=True, statistical=True, window_size=ws, hop_length=hl)
+                feature_extractor = WavFeatureExtractor(
+                    sample_rate=10000,
+                    cepstrals=True,
+                    pyau_mfccs=True,
+                    temporal=True,
+                    statistical=True,
+                    window_size=ws,
+                    hop_length=hl,
+                )
                 norm_signal_dataset = SignalDataset.load(norm_letters_signal_dataset_path)
                 raw_signal_dataset = SignalDataset.load(raw_letters_signal_dataset_path)
 
@@ -88,11 +95,18 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
         for ws in p.ONE_SEC_WINDOW_SIZES:
             for rhl in p.RELATIVE_HOP_LENGTHS:
                 # Calculate hop length
-                hl = ws*rhl
+                hl = ws * rhl
 
                 # Load Extractor and Signal Datasets
-                feature_extractor = WavFeatureExtractor(sample_rate=10000, cepstrals=True, pyau_mfccs=True,
-                                                        temporal=True, statistical=True, window_size=ws, hop_length=hl)
+                feature_extractor = WavFeatureExtractor(
+                    sample_rate=10000,
+                    cepstrals=True,
+                    pyau_mfccs=True,
+                    temporal=True,
+                    statistical=True,
+                    window_size=ws,
+                    hop_length=hl,
+                )
                 norm_1s_signal_dataset = SignalDataset.load(norm_1s_signal_dataset_path)
                 raw_1s_signal_dataset = SignalDataset.load(raw_1s_signal_dataset_path)
 
@@ -111,5 +125,5 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
                 del feat_dataset
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     create_features_datasets(signals=True, letter_features=True, one_sec_features=True)

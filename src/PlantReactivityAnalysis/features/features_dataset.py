@@ -1,6 +1,4 @@
 import pandas as pd
-import torch
-from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pickle
@@ -13,7 +11,7 @@ from PlantReactivityAnalysis.features.wav_feature_extractor import WavFeatureExt
 from PlantReactivityAnalysis.data import preparation_eurythmy_data as ped
 
 
-class FeaturesDataset(Dataset):
+class FeaturesDataset:
     def __init__(
         self,
         features: pd.DataFrame = None,
@@ -24,13 +22,10 @@ class FeaturesDataset(Dataset):
         """
         Initialize the FeaturesDataset instance.
         """
-        self.features = features  # Direct access
+        self.features = features
         self.label_columns = label_columns
         self.variable_columns = variable_columns
-        self.target_column_name = target_column  # Direct access
-
-        # Standardization attribute can be set externally if required
-        self.standardization = None
+        self.target_column_name = target_column
 
     # Derived properties
     @property
@@ -46,30 +41,6 @@ class FeaturesDataset(Dataset):
         Returns a DataFrame with only the label columns.
         """
         return self.features[self.label_columns]
-
-    # Torch Dataset heritage
-    def __len__(self):
-        """
-        Returns the number of samples in the dataset.
-
-        :return: Integer representing the number of samples.
-        """
-        return len(self.features)
-
-    def __getitem__(self, idx):
-        # Extract features and target for the given index
-        variable_feature = self.features.loc[idx, self.variable_columns].values
-        target = self.features.loc[idx, self.target_column_name]
-
-        # Ensure data is numeric and convert to appropriate types
-        variable_feature = np.asarray(variable_feature, dtype=np.float32)
-        target = np.asarray(target, dtype=np.int64)  # or np.float32, depending on your target data
-
-        # Convert to PyTorch tensors
-        feature_tensor = torch.tensor(variable_feature, dtype=torch.float32)
-        target_tensor = torch.tensor(target, dtype=torch.long)
-
-        return feature_tensor, target_tensor
 
     # Data Handling
     def add_target_column(self, column_name, target_values):
@@ -373,8 +344,9 @@ class FeaturesDataset(Dataset):
 
         print(f"Outliers in variable columns have been treated based on the {iqr_multiplier} * IQR criterion.")
 
-    def reduce_features_based_on_target(self, corr_threshold: float = 0.8,
-                                        print_test=False) -> Tuple[List[str], pd.DataFrame]:
+    def reduce_features_based_on_target(
+        self, corr_threshold: float = 0.8, print_test=False
+    ) -> Tuple[List[str], pd.DataFrame]:
         """
         Reduces features based on correlation and significance with respect to a discrete target variable.
 
@@ -387,7 +359,7 @@ class FeaturesDataset(Dataset):
         """
         variable_cols = [col for col in self.variable_columns if col in self.features.columns]
         corr_matrix = self.features[variable_cols].corr().abs()
-        feature_stats = pd.DataFrame(columns=self.features[self.target_column_name].unique().tolist() + ['p_value'])
+        feature_stats = pd.DataFrame(columns=self.features[self.target_column_name].unique().tolist() + ["p_value"])
 
         while True:
             correlated_pairs = np.where((corr_matrix > corr_threshold) & (corr_matrix < 1))
@@ -398,10 +370,14 @@ class FeaturesDataset(Dataset):
             for idx1, idx2 in zip(*correlated_pairs):
                 feature1, feature2 = variable_cols[idx1], variable_cols[idx2]
                 if self.features[self.target_column_name].nunique() == 2:
-                    pval1 = ttest_ind(self.features[self.features[self.target_column_name] == 0][feature1],
-                                      self.features[self.features[self.target_column_name] == 1][feature1]).pvalue
-                    pval2 = ttest_ind(self.features[self.features[self.target_column_name] == 0][feature2],
-                                      self.features[self.features[self.target_column_name] == 1][feature2]).pvalue
+                    pval1 = ttest_ind(
+                        self.features[self.features[self.target_column_name] == 0][feature1],
+                        self.features[self.features[self.target_column_name] == 1][feature1],
+                    ).pvalue
+                    pval2 = ttest_ind(
+                        self.features[self.features[self.target_column_name] == 0][feature2],
+                        self.features[self.features[self.target_column_name] == 1][feature2],
+                    ).pvalue
                 else:
                     groups1 = [group[feature1].values for _, group in self.features.groupby(self.target_column_name)]
                     groups2 = [group[feature2].values for _, group in self.features.groupby(self.target_column_name)]
@@ -426,7 +402,7 @@ class FeaturesDataset(Dataset):
         print(f"Reduced variable features from initial count to {len(variable_cols)}.")
         self.variable_columns = variable_cols
 
-        feature_stats = feature_stats.sort_values(by='p_value', ascending=True)
+        feature_stats = feature_stats.sort_values(by="p_value", ascending=True)
 
         if print_test:
             print(feature_stats)
@@ -523,10 +499,11 @@ class FeaturesDataset(Dataset):
 
     # Handle Eurythmy Data
     def make_final_dataset(self):
-
-        rows_drop = self.objective_features[(self.objective_features['flatness_ratio_1000'] > 0.75) &
-                                            (self.objective_features['flatness_ratio_500'] > 0.85) &
-                                            (self.objective_features['flatness_ratio_100'] > 0.999)].index.to_list()
+        rows_drop = self.objective_features[
+            (self.objective_features["flatness_ratio_1000"] > 0.75)
+            & (self.objective_features["flatness_ratio_500"] > 0.85)
+            & (self.objective_features["flatness_ratio_100"] > 0.999)
+        ].index.to_list()
         self.prepare_dataset(drop_constant=False, drop_flatness_columns=True, drop_nan_columns=True)
         self.drop_rows(rows_drop)
 
