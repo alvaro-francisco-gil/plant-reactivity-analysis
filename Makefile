@@ -19,8 +19,7 @@ install:
 
 ## Make Dataset
 make_dataset:
-	mkdir -p data/raw data/interim data/processed
-	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/data/make_dataset.py data/raw data/interim
+	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/data/make_dataset.py
 
 ## Build Features
 build_features:

@@ -3,24 +3,25 @@ from PlantReactivityAnalysis.data.signal_dataset import SignalDataset
 from PlantReactivityAnalysis.features.wav_feature_extractor import WavFeatureExtractor
 from PlantReactivityAnalysis.features.features_dataset import FeaturesDataset
 import PlantReactivityAnalysis.data.preparation_eurythmy_data as ped
-import PlantReactivityAnalysis.config as cf
 import PlantReactivityAnalysis.models.parameters as p
+from PlantReactivityAnalysis.config import (WAV_FOLDER, RAW_DATA_DIR, INTERIM_DATA_DIR,
+                                            FEATURES_LETTERS_DIR, FEATURES_ONE_SEC_DIR)
 
 
 def create_features_datasets(signals=True, letter_features=True, one_sec_features=True):
     """
     Function to create and process datasets as per the user's script.
     """
-    raw_signal_dataset_path = cf.RAW_DATA_DIR / "raw_signal_dataset.pkl"
-    norm_signal_dataset_path = cf.INTERIM_DATA_DIR / "norm_signal_dataset.pkl"
-    raw_letters_signal_dataset_path = cf.RAW_DATA_DIR / "raw_letters_signal_dataset.pkl"
-    norm_letters_signal_dataset_path = cf.INTERIM_DATA_DIR / "norm_letters_signal_dataset.pkl"
-    raw_1s_signal_dataset_path = cf.RAW_DATA_DIR / "raw_1s_signal_dataset.pkl"
-    norm_1s_signal_dataset_path = cf.INTERIM_DATA_DIR / "norm_1s_signal_dataset.pkl"
+    raw_signal_dataset_path = RAW_DATA_DIR / "raw_signal_dataset.pkl"
+    norm_signal_dataset_path = INTERIM_DATA_DIR / "norm_signal_dataset.pkl"
+    raw_letters_signal_dataset_path = RAW_DATA_DIR / "raw_letters_signal_dataset.pkl"
+    norm_letters_signal_dataset_path = INTERIM_DATA_DIR / "norm_letters_signal_dataset.pkl"
+    raw_1s_signal_dataset_path = RAW_DATA_DIR / "raw_1s_signal_dataset.pkl"
+    norm_1s_signal_dataset_path = INTERIM_DATA_DIR / "norm_1s_signal_dataset.pkl"
 
     if signals:
         # Initialize the Reader with the folder of wavs
-        reader = WavDataReader(folder=cf.WAV_FOLDER, sample_rate=10000)
+        reader = WavDataReader(folder=WAV_FOLDER, sample_rate=10000)
         signals, ids = reader.get_ordered_signals_and_keys()
         meas_df = ped.return_meas_labels_by_keys(ids)
 
@@ -73,21 +74,14 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
                     window_size=ws,
                     hop_length=hl,
                 )
-                norm_signal_dataset = SignalDataset.load(norm_letters_signal_dataset_path)
-                raw_signal_dataset = SignalDataset.load(raw_letters_signal_dataset_path)
 
                 # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
+                norm_signal_dataset = SignalDataset.load(norm_letters_signal_dataset_path)
+                FEATURES_LETTERS_DIR.mkdir(parents=True, exist_ok=True)
                 feat_dataset = FeaturesDataset.from_signal_dataset(norm_signal_dataset, feature_extractor)
                 file_name = "features_dataset_norm_letters_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_norm_letters_dataset_path = cf.FEATURES_LETTERS_DIR / file_name
+                feat_norm_letters_dataset_path = FEATURES_LETTERS_DIR / file_name
                 feat_dataset.save(feat_norm_letters_dataset_path)
-
-                # Create and Save Raw Feature Dataset using Extractor and Signal Dataset
-                feat_dataset = FeaturesDataset.from_signal_dataset(raw_signal_dataset, feature_extractor)
-                del raw_signal_dataset
-                file_name = "features_dataset_raw_letters_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_raw_letters_dataset_path = cf.FEATURES_LETTERS_DIR / file_name
-                feat_dataset.save(feat_raw_letters_dataset_path)
                 del feat_dataset
 
     # Features Dataset by 1s
@@ -107,21 +101,14 @@ def create_features_datasets(signals=True, letter_features=True, one_sec_feature
                     window_size=ws,
                     hop_length=hl,
                 )
-                norm_1s_signal_dataset = SignalDataset.load(norm_1s_signal_dataset_path)
-                raw_1s_signal_dataset = SignalDataset.load(raw_1s_signal_dataset_path)
 
                 # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
+                norm_1s_signal_dataset = SignalDataset.load(norm_1s_signal_dataset_path)
+                FEATURES_ONE_SEC_DIR.mkdir(parents=True, exist_ok=True)
                 feat_dataset = FeaturesDataset.from_signal_dataset(norm_1s_signal_dataset, feature_extractor)
                 file_name = "features_dataset_norm_1s_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_norm_1s_dataset_path = cf.FEATURES_ONE_SEC_DIR / file_name
+                feat_norm_1s_dataset_path = FEATURES_ONE_SEC_DIR / file_name
                 feat_dataset.save(feat_norm_1s_dataset_path)
-
-                # Create and Save Norm Feature Dataset using Extractor and Signal Dataset
-                feat_dataset = FeaturesDataset.from_signal_dataset(raw_1s_signal_dataset, feature_extractor)
-                del raw_1s_signal_dataset
-                file_name = "features_dataset_raw_1s_ws" + str(ws) + "_hl" + str(hl) + ".pkl"
-                feat_raw_1s_dataset_path = cf.FEATURES_ONE_SEC_DIR / file_name
-                feat_dataset.save(feat_raw_1s_dataset_path)
                 del feat_dataset
 
 

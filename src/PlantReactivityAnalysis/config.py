@@ -26,7 +26,3 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 
 # Notebook directory
 NOTEBOOKS_DIR = BASE_DIR / "notebooks"
-
-# References and documentation
-REFERENCES_DIR = BASE_DIR / "references"
-DOCS_DIR = BASE_DIR / "docs"
