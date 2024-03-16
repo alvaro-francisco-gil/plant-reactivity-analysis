@@ -1,4 +1,3 @@
-from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -6,7 +5,7 @@ import pickle
 import copy
 
 
-class SignalDataset(Dataset):
+class SignalDataset:
     def __init__(self, signals, features, target_column=None, feature_labels=None, sample_rate: int = 10000):
         """
         Initialize the SignalDataset instance.
@@ -30,30 +29,6 @@ class SignalDataset(Dataset):
         self.features = features
         self.sample_rate = sample_rate
         self.target_column = target_column
-
-    # Torch Dataset heritage
-    def __len__(self):
-        """
-        Return the number of items in the dataset.
-        """
-        return len(self.signals)
-
-    def __getitem__(self, idx):
-        """
-        Retrieve the signal and corresponding features at the specified index. If a target column is specified,
-        the target value is also returned.
-
-        :param idx: Index of the item to retrieve.
-        :return: A tuple containing the signal, its corresponding features, and optionally the target value.
-        """
-        signal = self.signals[idx]
-        features = self.features.iloc[idx]
-
-        if self.target_column is not None:
-            target = features[self.target_column]
-            return signal, target
-        else:
-            return signal, features
 
     # Standardization methods
     @staticmethod
@@ -171,7 +146,7 @@ class SignalDataset(Dataset):
             plt.show()
 
     # Signal manipulation
-    def segment_signals_by_duration(self, segment_duration, segment_column_name='initial_second'):
+    def segment_signals_by_duration(self, segment_duration, segment_column_name="initial_second"):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
         including the start of each segment as a new feature. Resets the index of the features DataFrame.

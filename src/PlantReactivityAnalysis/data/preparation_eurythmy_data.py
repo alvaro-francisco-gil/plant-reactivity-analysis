@@ -1,9 +1,3 @@
-import pandas as pd
-import os
-import numpy as np
-
-import PlantReactivityAnalysis.config as cf
-
 """
 The following functions gather the eurythmy data related to eurythmy from
 text files and combines it with measurements_info.csv
@@ -13,6 +7,12 @@ Understand the data related to Eurythmy:
  - The data was hand labelled in text files (/data/raw/txt_files)
  - The wav, text and video of a specific measurement share the 'id_measurement'(number at the start of the file #ID)
 """
+
+import pandas as pd
+import os
+import numpy as np
+
+from PlantReactivityAnalysis.config import INTERIM_DATA_DIR, MEASUREMENTS_EURYTHMY
 
 
 def read_eurythmy_text_files_to_dict(folder_path):
@@ -36,7 +36,6 @@ def read_eurythmy_text_files_to_dict(folder_path):
         # Check if the current file is a text file
         if filename.endswith(".txt"):
             # Extract the ID from the filename
-            # Assuming the ID is the part of the filename after '#'
             id = filename.split("_")[0][1:]
 
             # Open and read the file
@@ -194,7 +193,7 @@ def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder
     df["eurythmy_end"] = df[letters].max(axis=1)
 
     # Define the file path
-    output_file_path = r"../../data/interim/measurements_with_eurythmy.csv"
+    output_file_path = INTERIM_DATA_DIR / "measurements_with_eurythmy.csv"
 
     # Output the DataFrame to the CSV file
     df.to_csv(output_file_path)
@@ -212,7 +211,7 @@ def return_meas_labels_by_keys(keys):
     :return: A DataFrame with selected columns for the specified keys.
     """
 
-    df_meas = pd.read_csv(cf.MEASUREMENTS_EURYTHMY)
+    df_meas = pd.read_csv(MEASUREMENTS_EURYTHMY)
 
     columns_to_include = ["id_measurement", "id_performance", "datetime", "plant", "generation", "num_eurythmy"]
 
@@ -349,7 +348,7 @@ def return_letter_dictionary(indexes):
     ]
 
     # Read eurythmy letters information
-    df_meas = pd.read_csv(cf.MEASUREMENTS_EURYTHMY, index_col="id_measurement")
+    df_meas = pd.read_csv(MEASUREMENTS_EURYTHMY, index_col="id_measurement")
 
     # Extract and format letters data
     letter_dictionary = extract_data_by_index_and_columns(df_meas, indexes, letter_columns)
@@ -367,8 +366,6 @@ def add_meas_letters(feat_df):
     """
     indexes = feat_df["id_measurement"].tolist()
     letter_dictionary = return_letter_dictionary(indexes)
-
-    # Include letter data in the df
     new_df = match_measurements_with_letters(feat_df, letter_dictionary)
 
     return new_df
@@ -488,10 +485,10 @@ def get_targets_rq5_plant_detection(df):
     :return: A tuple containing the indexes list and the list of second characters.
     """
     # Create a mapping dictionary
-    df['plant'].replace({'salad': 0, 'tomato': 1, 'basil': 2}, inplace=True)
+    df["plant"].replace({"salad": 0, "tomato": 1, "basil": 2}, inplace=True)
 
     # Extract values into a list
-    plant_values = df['plant'].tolist()
+    plant_values = df["plant"].tolist()
 
     # Store the indexes of the filtered rows
     indexes = df.index.tolist()
@@ -535,7 +532,6 @@ def read_indexes_file():
         for line in lines:
             line = line.strip()
             if not line:
-                # Skip empty lines
                 continue
             if line == "Training Set:":
                 current_set = train_indexes

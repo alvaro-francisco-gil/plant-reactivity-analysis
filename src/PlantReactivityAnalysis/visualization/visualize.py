@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from pandas.plotting import table
 
 
-def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title='Waveform Comparison'):
+def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title="Waveform Comparison"):
     """
     Plots multiple waveforms on the same chart.
 
@@ -15,7 +15,7 @@ def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title='Wa
 
     # Use default labels if none are provided
     if labels is None:
-        labels = [f'Waveform {i+1}' for i in range(len(waveforms))]
+        labels = [f"Waveform {i+1}" for i in range(len(waveforms))]
 
     assert len(waveforms) == len(labels), "Number of waveforms and labels must match"
 
@@ -27,8 +27,8 @@ def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title='Wa
         plt.plot(time_axis, wave, label=labels[i])
 
     # Adding labels and title
-    plt.xlabel('Time (seconds)')
-    plt.ylabel('Amplitude')
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Amplitude")
     plt.title(title)
 
     # Show legend
@@ -61,18 +61,18 @@ def export_df_to_image_formatted(df, filename, figsize=(20, 10), col_widths=None
 
     # Create a figure and a subplot without axes for the table
     fig, ax = plt.subplots(figsize=figsize)
-    ax.axis('off')
+    ax.axis("off")
 
     # Create the table in the plot with manually adjusted column widths
-    the_table = table(ax, df_formatted, loc='center', cellLoc='center', colWidths=col_widths)
+    the_table = table(ax, df_formatted, loc="center", cellLoc="center", colWidths=col_widths)
 
     # Set font size for all cells in the table
     for _, cell in the_table.get_celld().items():
         cell.set_text_props(fontsize=font_size)
 
-        cell.set_edgecolor('lightgrey')  # Optionally adjusts cell border color
+        cell.set_edgecolor("lightgrey")  # Optionally adjusts cell border color
 
     # Save the figure to a file
-    plt.savefig(str(filename), bbox_inches='tight', dpi=500)
-    plt.close('all')
-    print(f'DataFrame exported as image to {filename}')
+    plt.savefig(str(filename), bbox_inches="tight", dpi=500)
+    plt.close("all")
+    print(f"DataFrame exported as image to {filename}")

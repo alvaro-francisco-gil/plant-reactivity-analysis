@@ -255,7 +255,7 @@ class WavFeatureExtractor:
         cepstrum = np.fft.ifft(log_stft).real
 
         # Take the first n_cepstra coefficients (excluding the zeroth cepstrum)
-        cepstra = cepstrum[1:n_cepstra+1, :]
+        cepstra = cepstrum[1: n_cepstra + 1, :]
 
         # Calculate the average and standard deviation of each cepstral coefficient
         cepstra_avg = np.mean(cepstra, axis=1)
