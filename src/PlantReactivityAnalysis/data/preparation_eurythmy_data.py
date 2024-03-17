@@ -202,25 +202,6 @@ def group_eurythmy_text_data_with_measurements(measurements_csv_file, txt_folder
     print(f"The DataFrame has been saved to: {output_file_path}")
 
 
-def return_meas_labels_by_keys(keys):
-    """
-    Returns a DataFrame with specified measurements based on given keys,
-    including 'id_measurement' as a regular column.
-
-    :param keys: A list of keys to filter the measurements.
-    :return: A DataFrame with selected columns for the specified keys.
-    """
-
-    df_meas = pd.read_csv(MEASUREMENTS_EURYTHMY)
-
-    columns_to_include = ["id_measurement", "id_performance", "datetime", "plant", "generation", "num_eurythmy"]
-
-    # Filter the DataFrame by keys and columns
-    filtered_df = df_meas[df_meas["id_measurement"].isin(keys)][columns_to_include]
-
-    return filtered_df
-
-
 def extract_data_by_index_and_columns(df, indexes, columns):
     """
     Extracts a dictionary from a DataFrame based on given indexes and columns.
@@ -518,64 +499,3 @@ def get_indexes_and_targets_by_rq(rq_number, df):
         return get_targets_rq5_plant_detection(df)
     else:
         raise ValueError("Invalid RQ number. Please provide a number between 1 and 4.")
-
-
-def read_indexes_file():
-    split_indexes_path = r"..\data\interim\split_indexes.txt"
-    train_indexes = []
-    val_indexes = []
-    test_indexes = []
-    current_set = None
-
-    with open(split_indexes_path, "r") as file:
-        lines = file.readlines()
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            if line == "Training Set:":
-                current_set = train_indexes
-            elif line == "Validation Set:":
-                current_set = val_indexes
-            elif line == "Test Set:":
-                current_set = test_indexes
-            else:
-                if current_set is not None:
-                    current_set.append(int(line))
-
-    return train_indexes, val_indexes, test_indexes
-
-
-def find_matching_indexes(train_values, val_values, test_values, df, column):
-    """
-    Find indexes in a DataFrame where the column value matches values in given lists.
-
-    :param train_values: List of values to match against the training set
-    :param val_values: List of values to match against the validation set
-    :param test_values: List of values to match against the test set
-    :param df: DataFrame to search in
-    :param column: Column name in DataFrame to match values against
-    :return: Three lists containing indexes in the DataFrame for train, validation, and test values
-    """
-    train_indexes = df[df[column].isin(train_values)].index.tolist()
-    val_indexes = df[df[column].isin(val_values)].index.tolist()
-    test_indexes = df[df[column].isin(test_values)].index.tolist()
-
-    return train_indexes, val_indexes, test_indexes
-
-
-def get_train_val_test_indexes_by_wav(df):
-    """
-    Get the train, validation and test indexes given the Dataframe.
-
-    :param df: Dataframe representing the features
-    """
-    # Read 'id_measurement' idxs from text file
-    train_values, val_values, test_values = read_indexes_file()
-
-    # Find the indexes equal to 'id_measurement' for each group
-    train_indexes, val_indexes, test_indexes = find_matching_indexes(
-        train_values, val_values, test_values, df, column="id_measurement"
-    )
-
-    return train_indexes, val_indexes, test_indexes
