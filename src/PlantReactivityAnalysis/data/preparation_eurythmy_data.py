@@ -213,12 +213,12 @@ def extract_data_by_index_and_columns(df, indexes, columns):
     """
     extracted_data = {}
     for index in indexes:
+        data_for_index = {col: None for col in columns}
         if index in df.index:
-            # Extract data for the given index and specified columns
-            extracted_data[index] = {col: df.at[index, col] for col in columns if col in df.columns}
-        else:
-            # Handle case where index is not in the DataFrame
-            extracted_data[index] = {col: None for col in columns}
+            for col in columns:
+                if col in df.columns:
+                    data_for_index[col] = df.at[index, col]
+        extracted_data[index] = data_for_index
     return extracted_data
 
 
@@ -466,7 +466,7 @@ def get_targets_rq5_plant_detection(df):
     :return: A tuple containing the indexes list and the list of second characters.
     """
     # Create a mapping dictionary
-    df["plant"].replace({"salad": 0, "tomato": 1, "basil": 2}, inplace=True)
+    df.loc[:, "plant"] = df["plant"].replace({"salad": 0, "tomato": 1, "basil": 2})
 
     # Extract values into a list
     plant_values = df["plant"].tolist()

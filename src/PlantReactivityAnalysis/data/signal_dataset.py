@@ -146,6 +146,16 @@ class SignalDataset:
             plt.show()
 
     # Signal manipulation
+    def remove_signals_by_index(self, indexes):
+        """
+        Remove signals and their corresponding features given their indexes.
+
+        :param indexes: A list of indexes of the signals to be removed.
+        """
+        # Filter out signals and features by keeping those not in the provided indexes
+        self.signals = [signal for i, signal in enumerate(self.signals) if i not in indexes]
+        self.features = self.features.drop(indexes).reset_index(drop=True)
+
     def segment_signals_by_duration(self, segment_duration, segment_column_name="initial_second"):
         """
         Segments each signal into smaller segments of a specified duration and updates the corresponding features,
