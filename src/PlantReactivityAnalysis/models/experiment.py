@@ -14,7 +14,7 @@ from xgboost import XGBClassifier
 from sklearn.ensemble import (RandomForestClassifier, ExtraTreesClassifier,
                               GradientBoostingClassifier, AdaBoostClassifier)
 
-from PlantReactivityAnalysis.data.get_dataset import get_dataset_by_question
+from PlantReactivityAnalysis.data.get_data_for_model import get_data_for_model_by_question
 from PlantReactivityAnalysis.config import FEATURES_LETTERS_DIR, MODELS_DIR, FEATURES_ONE_SEC_DIR, EXPERIMENT_DIR
 from PlantReactivityAnalysis.models.parameters import PARAMETER_GRID, CORRELATION_TRESHOLDS
 
@@ -219,8 +219,8 @@ def run_experiment_in_folder(features_folder, research_questions, correlation_tr
             hl = float(parts_file[5][2:])
             print('--------------------- Processing file: ', file, '----------------------------')
 
-            datasets = get_dataset_by_question(path=FEATURES_LETTERS_DIR/file_path,
-                                               rqs=research_questions, corr_threshold=ct)
+            datasets = get_data_for_model_by_question(path=FEATURES_LETTERS_DIR/file_path,
+                                                      rqs=research_questions, corr_threshold=ct)
 
             for rq in research_questions:
                 print(f"  Processing RQ {rq}")
@@ -237,21 +237,32 @@ def run_experiment_in_folder(features_folder, research_questions, correlation_tr
                 experiment.append_results_to_csv(results_file, parameters=rows)
 
 
-if __name__ == '__main__':
-
+def run_experiments(research_questions):
     models_parameters = PARAMETER_GRID
     results_file = EXPERIMENT_DIR / 'experiment_results.csv'
 
-    # Research Questions 1 & 2
-    research_questions = [1, 2]
-    features_folder = FEATURES_LETTERS_DIR
-    correlation_tresholds = CORRELATION_TRESHOLDS
-    run_experiment_in_folder(features_folder, research_questions, correlation_tresholds,
-                             models_parameters, results_file)
+    # Define mappings for features folders and correlation thresholds
+    folder_mapping = {
+        1: FEATURES_LETTERS_DIR,
+        2: FEATURES_LETTERS_DIR,
+        5: FEATURES_ONE_SEC_DIR,
+    }
 
-    # Research Question 5
-    research_questions = [5]
-    features_folder = FEATURES_ONE_SEC_DIR
-    correlation_tresholds = [0.8]
-    run_experiment_in_folder(features_folder, research_questions, correlation_tresholds,
-                             models_parameters, results_file)
+    # Only [0.8] was used in rq5 for computing limitations
+    correlation_threshold_mapping = {
+        1: CORRELATION_TRESHOLDS,
+        2: CORRELATION_TRESHOLDS,
+        5: [0.8],
+    }
+
+    for question in research_questions:
+        # Determine the features folder and correlation thresholds for the current question
+        features_folder = folder_mapping.get(question)
+        correlation_thresholds = correlation_threshold_mapping.get(question)
+        run_experiment_in_folder(features_folder, [question], correlation_thresholds,
+                                 models_parameters, results_file)
+
+
+if __name__ == '__main__':
+    research_questions = [1, 2, 5]
+    run_experiments(research_questions)
