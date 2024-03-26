@@ -29,12 +29,6 @@ build_features:
 experiment:
 	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/models/experiment.py models results
 
-## Train Model
-train_model:
-	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/models/train_model.py data/features models
-
-# Add other existing targets like `clean`, `requirements`, etc.
-
 ## Delete all compiled Python files and generated data
 clean:
 	find . -type f -name "*.py[co]" -delete

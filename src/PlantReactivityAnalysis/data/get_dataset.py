@@ -1,7 +1,7 @@
 from PlantReactivityAnalysis.features.features_dataset import FeaturesDataset
 
 
-def get_dataset_by_question(path, rqs, corr_threshold=0.8, ttest=False):
+def get_dataset_by_question(path, rqs, corr_threshold=0.8):
     """
     Loads a dataset and prepares subsets based on specified research questions (RQs),
     applying feature reduction based on correlation threshold and optionally a t-test.

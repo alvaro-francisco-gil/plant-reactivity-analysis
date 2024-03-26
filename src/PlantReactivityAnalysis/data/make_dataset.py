@@ -3,14 +3,14 @@ import os
 import logging
 
 # Import configuration paths
-from PlantReactivityAnalysis.config import (DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR,
+from PlantReactivityAnalysis.config import (DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR, EXPERIMENT_DIR,
                                             PROCESSED_DATA_DIR, MEASUREMENTS_INFO, TEXT_EURYTHMY_FILES)
 from PlantReactivityAnalysis.data.preparation_eurythmy_data import group_eurythmy_text_data_with_measurements
 
 
 def ensure_data_directories_exist():
     """Ensures that data directories exist."""
-    for path in [DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR]:
+    for path in [DATA_DIR, RAW_DATA_DIR, INTERIM_DATA_DIR, PROCESSED_DATA_DIR, EXPERIMENT_DIR]:
         os.makedirs(path, exist_ok=True)
 
 
