@@ -1,5 +1,6 @@
 import os
 import librosa
+from typing import List, Tuple, Dict
 
 
 class WavDataReader:
@@ -11,6 +12,11 @@ class WavDataReader:
         :param filename: The path to a single WAV file.
         :param sample_rate: The sample rate to use for audio files.
         """
+        if not folder and not filename:
+            raise ValueError("Either 'folder' or 'filename' must be provided.")
+        if folder and filename:
+            raise ValueError("'folder' and 'filename' should not be used together.")
+
         self.sample_rate = sample_rate
         self.data = {}
         self.extract_key = extract_key
@@ -23,7 +29,7 @@ class WavDataReader:
         print(f"Total WAV files read: {len(self.data)}")
 
     @staticmethod
-    def extract_key_from_filename(filename: str):
+    def extract_key_from_filename(filename: str) -> int:
         """
         Extracts the unique key (id_measurement) from a filename.
 
@@ -42,16 +48,14 @@ class WavDataReader:
         """
         for filename in os.listdir(folder):
             if filename.endswith(".wav"):
-                # Construct the full path to the file
-                file_path = os.path.join(folder, filename)
-
-                # Load the audio file
-                audio, _ = librosa.load(file_path, sr=self.sample_rate)
-
-                # Store the audio data
-                if self.extract_key:
-                    filename = self.extract_key_from_filename(filename)
-                self.data[filename] = audio
+                try:
+                    file_path = os.path.join(folder, filename)
+                    audio, _ = librosa.load(file_path, sr=self.sample_rate)
+                    if self.extract_key:
+                        filename = self.extract_key_from_filename(filename)
+                    self.data[filename] = audio
+                except Exception as e:
+                    print(f"Error loading {filename}: {e}")
 
     def read_single_wav_file(self, filename: str):
         """
@@ -67,7 +71,7 @@ class WavDataReader:
             filename = self.extract_key_from_filename(filename)
         self.data[filename] = audio
 
-    def get_data(self):
+    def get_data(self) -> Dict:
         """
         Returns the loaded audio data with filenames.
 
@@ -75,7 +79,7 @@ class WavDataReader:
         """
         return self.data
 
-    def get_values(self):
+    def get_values(self) -> List:
         """
         Returns a list of the audio data values.
 
@@ -83,7 +87,7 @@ class WavDataReader:
         """
         return list(self.data.values())
 
-    def get_keys(self):
+    def get_keys(self) -> List:
         """
         Returns a list of the keys (identifiers) for the audio data.
 
@@ -91,7 +95,7 @@ class WavDataReader:
         """
         return list(self.data.keys())
 
-    def get_values_and_keys(self):
+    def get_values_and_keys(self) -> Tuple[List[float], List[int]]:
         """
         Returns a list of the values and a list of the keys.
 
@@ -112,9 +116,6 @@ class WavDataReader:
         """
         Returns a list of signals ordered by the keys of self.data.
         """
-        # Sort the keys of self.data
         ordered_keys = sorted(self.data.keys())
-
-        # Retrieve and return the signals in the order of sorted keys
         ordered_signals = [self.data[key] for key in ordered_keys]
         return ordered_signals, ordered_keys

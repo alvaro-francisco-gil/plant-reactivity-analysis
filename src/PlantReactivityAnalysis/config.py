@@ -12,6 +12,7 @@ INTERIM_DATA_DIR = DATA_DIR / "interim"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 FEATURES_LETTERS_DIR = PROCESSED_DATA_DIR / "segmented_by_letters"
 FEATURES_ONE_SEC_DIR = PROCESSED_DATA_DIR / "segmented_by_one_second"
+EXPERIMENT_DIR = DATA_DIR / "experiment"
 
 # Raw files
 MEASUREMENTS_INFO = RAW_DATA_DIR / "measurements_info.csv"
@@ -26,7 +27,3 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 
 # Notebook directory
 NOTEBOOKS_DIR = BASE_DIR / "notebooks"
-
-# References and documentation
-REFERENCES_DIR = BASE_DIR / "references"
-DOCS_DIR = BASE_DIR / "docs"

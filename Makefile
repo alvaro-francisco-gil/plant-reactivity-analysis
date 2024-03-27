@@ -19,8 +19,7 @@ install:
 
 ## Make Dataset
 make_dataset:
-	mkdir -p data/raw data/interim data/processed
-	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/data/make_dataset.py data/raw data/interim
+	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/data/make_dataset.py
 
 ## Build Features
 build_features:
@@ -29,12 +28,6 @@ build_features:
 ## Run Experiment
 experiment:
 	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/models/experiment.py models results
-
-## Train Model
-train_model:
-	$(PYTHON_INTERPRETER) src/PlantReactivityAnalysis/models/train_model.py data/features models
-
-# Add other existing targets like `clean`, `requirements`, etc.
 
 ## Delete all compiled Python files and generated data
 clean:
