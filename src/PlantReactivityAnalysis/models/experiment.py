@@ -7,7 +7,6 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 from sklearn.model_selection import ParameterGrid
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
@@ -57,7 +56,6 @@ class Experiment:
             "extratrees": ExtraTreesClassifier,
             "gaussiannb": GaussianNB,
             "adaboost": AdaBoostClassifier,
-            "logisticregression": LogisticRegression,
             "kneighbors": KNeighborsClassifier,
             "lgbm": LGBMClassifier,
             "xgb": XGBClassifier
@@ -219,7 +217,7 @@ def run_experiment_in_folder(features_folder, research_questions, correlation_tr
             hl = float(parts_file[5][2:])
             print('--------------------- Processing file: ', file, '----------------------------')
 
-            datasets = get_data_for_model_by_question(path=FEATURES_LETTERS_DIR/file_path,
+            datasets = get_data_for_model_by_question(path=features_folder/file_path,
                                                       rqs=research_questions, corr_threshold=ct)
 
             for rq in research_questions:
@@ -259,10 +257,11 @@ def run_experiments(research_questions):
         # Determine the features folder and correlation thresholds for the current question
         features_folder = folder_mapping.get(question)
         correlation_thresholds = correlation_threshold_mapping.get(question)
+        print(features_folder)
         run_experiment_in_folder(features_folder, [question], correlation_thresholds,
                                  models_parameters, results_file)
 
 
 if __name__ == '__main__':
-    research_questions = [1, 2, 5]
+    research_questions = [5]
     run_experiments(research_questions)

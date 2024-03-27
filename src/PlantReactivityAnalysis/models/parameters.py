@@ -30,10 +30,6 @@ PARAMETER_GRID = {
         "n_estimators": [50, 100],
         "learning_rate": [0.1, 1.0]
     },
-    "logisticregression": {
-        "C": [0.1, 1, 10],
-        "solver": ["liblinear", "lbfgs"]
-    },
     "kneighbors": {
         "n_neighbors": [5, 10, 15],
         "weights": ["uniform", "distance"]

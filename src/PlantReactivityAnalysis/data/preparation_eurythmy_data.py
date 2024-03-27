@@ -465,13 +465,14 @@ def get_targets_rq5_plant_detection(df):
     :param df: DataFrame containing the 'eurythmy_letter' and 'num_eurythmy' columns.
     :return: A tuple containing the indexes list and the list of second characters.
     """
-    # Create a mapping dictionary
-    df.loc[:, "plant"] = df["plant"].replace({"salad": 0, "tomato": 1, "basil": 2})
+    # Create a mapping dictionary and replace string values with integers
+    plant_mapping = {"salad": 0, "tomato": 1, "basil": 2}
+    df.loc[:, "plant"] = df["plant"].replace(plant_mapping).astype(int)
 
     # Extract values into a list
     plant_values = df["plant"].tolist()
 
-    # Store the indexes of the filtered rows
+    # Store the indexes of the rows
     indexes = df.index.tolist()
 
     return indexes, plant_values

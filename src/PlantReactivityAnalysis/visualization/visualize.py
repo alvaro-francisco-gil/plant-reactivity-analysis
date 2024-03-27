@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 from pandas.plotting import table
 import os
+import seaborn as sns
+
+from PlantReactivityAnalysis.config import FIGURES_DIR
 
 
 def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title="Waveform Comparison",
@@ -131,3 +134,31 @@ def export_df_to_image_formatted(df, filename, figsize=(20, 10), col_widths=None
     plt.savefig(str(filename), bbox_inches="tight", dpi=500)
     plt.close("all")
     print(f"DataFrame exported as image to {filename}")
+
+
+def plot_confusion_matrix(conf_matrix, title, xticklabels=['Predicted Negative', 'Predicted Positive'],
+                          yticklabels=['Actual Negative', 'Actual Positive']):
+    """
+    Plots a confusion matrix as a heatmap.
+
+    Parameters:
+    - conf_matrix: np.array, the confusion matrix to be plotted.
+    - title: str, the title of the plot.
+    - xticklabels: list of str, labels for the x-axis. Defaults to ['Predicted Negative', 'Predicted Positive'].
+    - yticklabels: list of str, labels for the y-axis. Defaults to ['Actual Negative', 'Actual Positive'].
+    """
+    # Set the context and a larger font for clarity
+    sns.set(context='talk', style='white')
+
+    # Create the heatmap for the confusion matrix
+    plt.figure(figsize=(5, 5))  # Set the figure size
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', cbar=False,
+                xticklabels=xticklabels, yticklabels=yticklabels)
+
+    plt.title(title)
+    plt.ylabel('Actual Label')
+    plt.xlabel('Predicted Label')
+    plt.tight_layout()  # Adjust the layout to make room for the labels
+    file_path = os.path.join(FIGURES_DIR, title)
+    plt.savefig(file_path)
+    plt.show()
