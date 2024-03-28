@@ -85,7 +85,7 @@ def plot_signals_with_info(ids, signals, df, columns, output_folder, sampling_ra
             plt.plot(time, signal)
             plt.title(f"Signal ID: {id} | {info_str}", fontsize=title_font_size)
             plt.xlabel('Time (seconds)')
-            plt.ylabel('Amplitude')
+            plt.ylabel('Voltage')
 
             # Save the plot as an image file
             image_filename = f"Signal_{id}.png"
