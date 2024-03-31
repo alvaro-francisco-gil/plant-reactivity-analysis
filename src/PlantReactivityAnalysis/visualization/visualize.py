@@ -6,31 +6,34 @@ import seaborn as sns
 from PlantReactivityAnalysis.config import FIGURES_DIR
 
 
-def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title="Waveform Comparison",
+def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, colors=None, title="Waveform Comparison",
                             save_path=None, show_legend=True, figsize=(10, 6)):
     """
-    Plots multiple waveforms on the same chart. Optionally saves the figure to a specified path.
+    Plots multiple waveforms on the same chart with optional specified colors.
 
     :param waveforms: List of waveforms to plot.
     :param sample_rate: The sample rate of the waveforms. Default is 10000.
     :param labels: List of labels for the waveforms. If None, default labels are used.
+    :param colors: List of colors for the waveforms. If None, default colors are used.
     :param title: The title of the plot.
-    :param save_path: Full path  where the figure should be saved. If None, the figure is not saved.
+    :param save_path: Full path where the figure should be saved. If None, the figure is not saved.
     :param show_legend: Boolean indicating whether to display the legend. Default is True.
     :param figsize: Tuple indicating the size of the figure (width, height) in inches. Default is (10, 6).
     """
     assert len(waveforms) > 0, "No waveforms provided for plotting"
-
     if labels is None:
         labels = [f"Waveform {i+1}" for i in range(len(waveforms))]
+    if colors is None:
+        colors = [None] * len(waveforms)
 
     assert len(waveforms) == len(labels), "Number of waveforms and labels must match"
+    assert len(waveforms) == len(colors), "Number of waveforms and colors must match"
 
     plt.figure(figsize=figsize)
     time_axis = [i / sample_rate for i in range(len(waveforms[0]))]
 
     for i, wave in enumerate(waveforms):
-        plt.plot(time_axis, wave, label=labels[i] if show_legend else "_nolegend_")
+        plt.plot(time_axis, wave, label=labels[i] if show_legend else "_nolegend_", color=colors[i])
 
     plt.xlabel("Time (seconds)")
     plt.ylabel("Amplitude")
@@ -40,14 +43,11 @@ def plot_multiple_waveforms(waveforms, sample_rate=10000, labels=None, title="Wa
         plt.legend()
 
     if save_path:
-        # Ensure the directory exists
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
         plt.savefig(save_path)
         print(f"Figure saved to {save_path}")
 
     plt.show()
-
     plt.clf()
 
 
@@ -85,7 +85,7 @@ def plot_signals_with_info(ids, signals, df, columns, output_folder, sampling_ra
             plt.plot(time, signal)
             plt.title(f"Signal ID: {id} | {info_str}", fontsize=title_font_size)
             plt.xlabel('Time (seconds)')
-            plt.ylabel('Amplitude')
+            plt.ylabel('Voltage')
 
             # Save the plot as an image file
             image_filename = f"Signal_{id}.png"
@@ -97,9 +97,9 @@ def plot_signals_with_info(ids, signals, df, columns, output_folder, sampling_ra
 
 
 def format_number(x):
-    """Format number with two decimals in standard or scientific notation."""
+    """Format number with four decimals in standard or scientific notation."""
     if isinstance(x, (int, float)):
-        return f"{x:.2f}" if abs(x) >= 0.01 else f"{x:.2e}"
+        return f"{x:.4f}" if abs(x) >= 0.0001 else f"{x:.2e}"
     return x
 
 

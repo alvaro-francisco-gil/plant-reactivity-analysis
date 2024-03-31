@@ -263,5 +263,5 @@ def run_experiments(research_questions):
 
 
 if __name__ == '__main__':
-    research_questions = [5]
+    research_questions = [1, 2, 5]
     run_experiments(research_questions)
