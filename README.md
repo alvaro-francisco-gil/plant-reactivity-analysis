@@ -33,7 +33,7 @@ Project Organization
     │
     ├── pyproject.toml     <- File to store the configuration of black
     │
-    ├── reports            <- Generated presentations of the project
+    ├── reports            <- Images and presentations of the project
     │   └── figures        <- Generated graphics and figures to be used in reporting
     │
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment
