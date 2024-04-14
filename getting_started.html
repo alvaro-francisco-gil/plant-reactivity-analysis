@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started &mdash; Plant-Reactivity-Analysis 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=2709fde1"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Data" href="data.html" />
+    <link rel="prev" title="Welcome to the Plant-Reactivity-Analysis Documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Plant-Reactivity-Analysis
+          </a>
+              <div class="version">
+                0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#download-the-data">Download the Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install-the-python-package">Install the Python Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#make-dataset">Make Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-features">Build Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-experiment">Run Experiment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explore-notebooks">Explore Notebooks</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">Project Organization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Plant-Reactivity-Analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>This guide will help you set up the project on a clean installation, detailing steps to obtain the raw data, install necessary components, process the data, and explore the results.</p>
+<section id="download-the-data">
+<h2>Download the Data<a class="headerlink" href="#download-the-data" title="Link to this heading"></a></h2>
+<p>First, download the initial dataset from the following link:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.dropbox.com/scl/fo/sttytnu854wk2lwf19w9c/ADBaVscDYbPDzUjb47bjnYE?rlkey=gxt3w290xw5hnypup9fhrecmv&amp;dl=1">Download dataset</a></p></li>
+</ul>
+<p>Place the downloaded data into the <code class="docutils literal notranslate"><span class="pre">data/raw</span></code> directory within the project folder.</p>
+</section>
+<section id="install-the-python-package">
+<h2>Install the Python Package<a class="headerlink" href="#install-the-python-package" title="Link to this heading"></a></h2>
+<p>Before processing the data, install the project as a Python package.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>install
+</pre></div>
+</div>
+</section>
+<section id="make-dataset">
+<h2>Make Dataset<a class="headerlink" href="#make-dataset" title="Link to this heading"></a></h2>
+<p>Transform the raw data into a cleaned, preliminary dataset using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>make_dataset
+</pre></div>
+</div>
+<p>This script performs initial data cleaning and transformations required for further processing.</p>
+</section>
+<section id="build-features">
+<h2>Build Features<a class="headerlink" href="#build-features" title="Link to this heading"></a></h2>
+<p>After the initial dataset is prepared, run the feature building script to process the cleaned data into features suitable for modeling:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>build_features
+</pre></div>
+</div>
+<p>This step involves extracting or constructing features from the processed data, which are crucial for effective model training.</p>
+</section>
+<section id="run-experiment">
+<h2>Run Experiment<a class="headerlink" href="#run-experiment" title="Link to this heading"></a></h2>
+<p>Execute the following command to run the modeling experiments using the prepared features:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>experiment
+</pre></div>
+</div>
+<p>This will train the models specified in the project and store the results for evaluation.</p>
+</section>
+<section id="explore-notebooks">
+<h2>Explore Notebooks<a class="headerlink" href="#explore-notebooks" title="Link to this heading"></a></h2>
+<p>Finally, we recommend running the Jupyter notebooks provided in the project to gain deeper insights into the data and the analysis performed. Start with the introductory notebook and proceed in the order they are numbered:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jupyter<span class="w"> </span>notebook<span class="w"> </span>&lt;notebook_name.ipynb&gt;
+</pre></div>
+</div>
+<p>These notebooks contain detailed explanations and visualizations of the data and modeling process.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to the Plant-Reactivity-Analysis Documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="data.html" class="btn btn-neutral float-right" title="Data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
