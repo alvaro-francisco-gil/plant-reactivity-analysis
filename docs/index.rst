@@ -1,20 +1,19 @@
-.. Plant-Reactivity-Analysis documentation master file, created by
-   sphinx-quickstart.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome to the Plant-Reactivity-Analysis Documentation!
+========================================================
 
-Plant-Reactivity-Analysis documentation!
-==============================================
+This documentation covers the setup, usage, and understanding of the Plant-Reactivity-Analysis project, which explores innovative data science techniques in analyzing plant reactivity.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
+   :caption: Contents
 
-   getting-started
-   commands
-
-
+   getting_started
+   data
+   features
+   models
+   project_structure
 
 Indices and tables
 ==================
