@@ -13,10 +13,6 @@ This module is responsible for conducting experiments, which involve training mo
     :show-inheritance:
     :private-members:
 
-Parameters Module
------------------
-This module manages the parameters used across different models. It ensures that parameters are consistently applied and easily adjustable, facilitating reproducibility and systematic variation in model configurations.
-
 Parameter Grid
 --------------
 The `PARAMETER_GRID` dictionary contains configuration sets for various machine learning models used within the project. Each model's parameters are listed with possible values that can be used during hyperparameter tuning to optimize model performance. Here's how the parameters are organized:
