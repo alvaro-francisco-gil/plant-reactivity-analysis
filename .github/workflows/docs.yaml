@@ -3,7 +3,7 @@ name: Build and Deploy Documentation
 on:
   push:
     branches:
-      - main  # Set this to the branch where your docs are updated
+      - main 
 
 jobs:
   build:
@@ -20,7 +20,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install sphinx
-          pip install -r requirements.txt  # If you have additional dependencies
 
       - name: Build Sphinx Documentation
         run: |
