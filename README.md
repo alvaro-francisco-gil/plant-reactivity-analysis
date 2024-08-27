@@ -1,7 +1,7 @@
 # Plant-Reactivity-Analysis
 *Research conducted at MiT by Álvaro Francisco Gil*
 
-This repository supports the paper **"Can Plants Perceive Human Gestures? Using AI to Track Eurythmic Human–Plant Interaction"**. You can read the full paper [here](https://www.mdpi.com/2313-7673/9/5/290).
+This repository supports the paper [**"Can Plants Perceive Human Gestures? Using AI to Track Eurythmic Human–Plant Interaction"**](https://www.mdpi.com/2313-7673/9/5/290).
 
 [![Python 3.10](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/downloads/release/python-31014/)
 [![GitHub license](https://badgen.net/github/license/alvaro-francisco-gil/Plant-Reactivity-Analysis)](https://github.com/alvaro-francisco-gil/Plant-Reactivity-Analysis/blob/main/LICENSE)
