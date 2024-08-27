@@ -1,6 +1,8 @@
 # Plant-Reactivity-Analysis
 *Research conducted at MiT by Álvaro Francisco Gil*
 
+This repository supports the paper **"Can Plants Perceive Human Gestures? Using AI to Track Eurythmic Human–Plant Interaction"**. You can read the full paper [here](https://www.mdpi.com/2313-7673/9/5/290).
+
 [![Python 3.10](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/downloads/release/python-31014/)
 [![GitHub license](https://badgen.net/github/license/alvaro-francisco-gil/Plant-Reactivity-Analysis)](https://github.com/alvaro-francisco-gil/Plant-Reactivity-Analysis/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/-Docs-green)](https://alvaro-francisco-gil.github.io/Plant-Reactivity-Analysis)
@@ -26,21 +28,21 @@ make install
 Transform the raw data into a cleaned, preliminary dataset using the following command:
 
 ```bash
-    make make_dataset
+make make_dataset
 ```
 
 ## Build Features
 After the initial dataset is prepared, run the feature building script to process the cleaned data into features suitable for modeling:
 
 ```bash
-    make build_features
+make build_features
 ```
 
 ## Run Experiment
 Execute the following command to run the modeling experiments using the prepared features:
 
 ```bash
-    make experiment
+make experiment
 ```
 
 ## Explore Notebooks
